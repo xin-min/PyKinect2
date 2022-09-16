@@ -8,6 +8,9 @@ import ctypes
 import _ctypes
 import pygame
 import sys
+import time
+import csv
+from datetime import datetime
 
 if sys.hexversion >= 0x03000000:
     import _thread as thread
@@ -22,6 +25,63 @@ SKELETON_COLORS = [pygame.color.THECOLORS["red"],
                   pygame.color.THECOLORS["purple"], 
                   pygame.color.THECOLORS["yellow"], 
                   pygame.color.THECOLORS["violet"]]
+
+KINECT_JOINTS = [
+PyKinectV2.JointType_Head,
+PyKinectV2.JointType_Neck, 
+PyKinectV2.JointType_SpineShoulder,
+PyKinectV2.JointType_SpineMid, 
+PyKinectV2.JointType_SpineBase, 
+PyKinectV2.JointType_ShoulderRight, 
+PyKinectV2.JointType_ShoulderLeft, 
+PyKinectV2.JointType_HipRight, 
+PyKinectV2.JointType_HipLeft, 
+PyKinectV2.JointType_ElbowRight, 
+PyKinectV2.JointType_WristRight, 
+PyKinectV2.JointType_HandRight, 
+PyKinectV2.JointType_HandTipRight, 
+PyKinectV2.JointType_ThumbRight, 
+PyKinectV2.JointType_ElbowLeft, 
+PyKinectV2.JointType_WristLeft, 
+PyKinectV2.JointType_HandLeft, 
+PyKinectV2.JointType_HandTipLeft, 
+PyKinectV2.JointType_ThumbLeft, 
+PyKinectV2.JointType_KneeRight, 
+PyKinectV2.JointType_AnkleRight, 
+PyKinectV2.JointType_FootRight, 
+PyKinectV2.JointType_KneeLeft, 
+PyKinectV2.JointType_AnkleLeft, 
+PyKinectV2.JointType_FootLeft
+]
+
+
+HEADER = [
+"datetime",
+"Head",
+"Neck",
+"SpineShoulder",
+"SpineMid",
+"SpineBase",
+"ShoulderRight",
+"ShoulderLeft",
+"HipRight",
+"HipLeft",
+"ElbowRight",
+"WristRight",
+"HandRight",
+"HandTipRight",
+"ThumbRight",
+"ElbowLeft",
+"WristLeft",
+"HandLeft",
+"HandTipLeft",
+"ThumbLeft",
+"KneeRight",
+"AnkleRight",
+"FootRight",
+"KneeLeft",
+"AnkleLeft",
+"FootLeft"]
 
 
 class BodyGameRuntime(object):
@@ -45,7 +105,7 @@ class BodyGameRuntime(object):
         self._clock = pygame.time.Clock()
 
         # Kinect runtime object, we want only color and body frames 
-        self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body)
+        self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body | PyKinectV2.FrameSourceTypes_Depth)
 
         # back buffer surface for getting Kinect color frames, 32bit color, width and height equal to the Kinect color frame size
         self._frame_surface = pygame.Surface((self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height), 0, 32)
@@ -72,17 +132,23 @@ class BodyGameRuntime(object):
             return
 
         # ok, at least one is good 
-        start = (jointPoints[joint0].x, jointPoints[joint0].y)
-        end = (jointPoints[joint1].x, jointPoints[joint1].y)
+        
+        # print(str(start))
+        # print(str(end))
+        # print("drawing")
+        # cv2.line(self._canvas, start, end, color, 8) 
+
 ##################################################
         try:
+            start = (int(jointPoints[joint0].x), int(jointPoints[joint0].y))
+            end = (int(jointPoints[joint1].x), int(jointPoints[joint1].y))
             cv2.line(self._canvas, start, end, color, 8) 
             # cv2.line(image, start_point, end_point, color, thickness)
             # pygame.draw.line(self._frame_surface, color, start, end, 8)
         except: # need to catch it due to possible invalid positions (with inf)
             pass
 
-    def draw_body(self, joints, jointPoints, color):
+    def draw_body(self, joints, jointPoints, color, depth_points):
         # Torso
         self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_Head, PyKinectV2.JointType_Neck);
         self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_Neck, PyKinectV2.JointType_SpineShoulder);
@@ -116,6 +182,23 @@ class BodyGameRuntime(object):
         self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HipLeft, PyKinectV2.JointType_KneeLeft);
         self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_KneeLeft, PyKinectV2.JointType_AnkleLeft);
         self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_AnkleLeft, PyKinectV2.JointType_FootLeft);
+        
+        # now = datetime.now()
+        # current_time = now.strftime("%d_%m_%Y_%H_%M_%S")
+        now = str(datetime.now())
+        font = cv2.FONT_HERSHEY_PLAIN
+        cv2.putText(self._canvas, now, (20, 40), font, 2, (255, 255, 255), 2)
+        row = [now]
+        for each_joint in KINECT_JOINTS:
+            
+            row.append((jointPoints[each_joint].x, jointPoints[each_joint].y))
+            # ---------- depth
+            # depth_x = depth_points[each_joint].x
+            # depth_y = depth_points[each_joint].y
+            # print((depth_x, depth_y, len(self._depth)))
+            # depth_z = self._depth[int(depth_y * 512 + depth_x)]
+            # row.append((depth_x,depth_y,depth_z))
+        self._writer.writerow(row)
 
 
     def draw_color_frame(self, frame, target_surface):
@@ -133,7 +216,10 @@ class BodyGameRuntime(object):
         out2 = cv2.VideoWriter('output2.avi', fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
         
         # -------- Set up text file -----------
-        f = open("skeleton_data.txt", "a")
+        f = open("skeleton_data.csv", "a", newline='')
+        self._writer = csv.writer(f)
+        self._writer.writerow(HEADER)
+        time.sleep(3)
 
         # -------- Main Program Loop -----------
         while not self._done:
@@ -173,11 +259,12 @@ class BodyGameRuntime(object):
                 # np.flip(frame, axis=-1) 
                 # print(frame.shape)
                 ##################################### to be removed ##################
-                cv2.line(frame, (0,0), (temp%1080,temp%1080), (100, 0, 50), 8) 
-                cv2.line(frame, (1920,0), ((1920-temp)%1080,temp%1080), (50, 0, 100), 8)
+                # cv2.line(frame, (0,0), (temp%1080,temp%1080), (100, 0, 50), 8) 
+                # cv2.line(frame, (1920,0), ((1920-temp)%1080,temp%1080), (50, 0, 100), 8)
                 ##################################### to be removed ##################
 
                 out.write(frame)
+                self._canvas = frame
                 frame = None
 
             # --- Cool! We have a body frame, so can get skeletons
@@ -185,7 +272,7 @@ class BodyGameRuntime(object):
                 self._bodies = self._kinect.get_last_body_frame()
 
             # --- draw skeletons to _frame_surface (first initialise new frame)
-            self._canvas = np.zeros((self._kinect.color_frame_desc.Height, self._kinect.color_frame_desc.Width, 3), np.uint8)
+            # self._canvas = np.zeros((self._kinect.color_frame_desc.Height, self._kinect.color_frame_desc.Width, 3), np.uint8)
             if self._bodies is not None: 
                 for i in range(0, self._kinect.max_body_count):
                     body = self._bodies.bodies[i]
@@ -195,19 +282,22 @@ class BodyGameRuntime(object):
                     joints = body.joints 
                     
                     ##################################### to be edited ##################
-                    f.write(joints)
+                    # f.write(str(joints))
 
                     # convert joint coordinates to color space 
                     joint_points = self._kinect.body_joints_to_color_space(joints)
-                    self.draw_body(joints, joint_points, SKELETON_COLORS[i])
+                    depth_points = self._kinect.body_joints_to_depth_space(joints)
+                    self._depth = self._kinect.get_last_depth_frame()
+                    # f.write(str(joint_points))
+
+                    self.draw_body(joints, joint_points, SKELETON_COLORS[i],depth_points)
 
             # temp = pygame.time.get_ticks()
 
             ##################################### to be removed ##################
-            cv2.line(self._canvas, (0,0), (temp%1080,temp%1080), (100, 0, 50), 8) 
-            cv2.line(self._canvas, (1920,0), (1920-temp,temp), (50, 0, 100), 8)
+            # cv2.line(self._canvas, (0,0), (temp%1080,temp%1080), (100, 0, 50), 8) 
+            # cv2.line(self._canvas, (1920,0), (1920-temp,temp), (50, 0, 100), 8)
             ##################################### to be removed ##################
-
 
             out2.write(self._canvas.astype('uint8'))
 
