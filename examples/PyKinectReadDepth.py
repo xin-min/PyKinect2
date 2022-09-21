@@ -191,7 +191,11 @@ class BodyGameRuntime(object):
         row = [now]
         for each_joint in KINECT_JOINTS:
             
-            row.append((jointPoints[each_joint].x, jointPoints[each_joint].y))
+            # row.append((jointPoints[each_joint].x, jointPoints[each_joint].y))
+            temp_x = joints[each_joint].Position.x
+            temp_y = joints[each_joint].Position.y
+            temp_z = joints[each_joint].Position.z
+            row.append((temp_x,temp_y,temp_z))
             # ---------- depth
             # depth_x = depth_points[each_joint].x
             # depth_y = depth_points[each_joint].y
@@ -223,6 +227,9 @@ class BodyGameRuntime(object):
 
         # -------- Main Program Loop -----------
         while not self._done:
+            # print("here")
+            # print(self._kinect.depth_frame_desc.Width)
+            # print(self._kinect.depth_frame_desc.Height)
             # --- Main event loop
             for event in pygame.event.get(): # User did something
                 if event.type == pygame.QUIT: # If user clicked close
@@ -315,7 +322,7 @@ class BodyGameRuntime(object):
 
             # --- Limit to 60 frames per second
             self._clock.tick(60)
-            print(self._clock.get_fps())
+            # print(self._clock.get_fps())
 
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
