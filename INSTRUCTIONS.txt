@@ -1,0 +1,13 @@
+install anaconda, python 3.6.8
+create environment with python 3.6.8
+
+command line stuff:
+conda create -n python3.6 python=3.6
+conda activate python3.6
+pip install pykinect2 (2.0.1.0)
+pip install comtypes = 1.1.4
+pip install opencv-python (4.6.0.66)
+pip install pygame (2.1.2)
+
+** will get assertion error for pykinect2. copy the 3 files from pykinect2 on github and replace the ones installed by pip in (anaconda3\envs\python3.6\Lib\site-packages\pykinect2)
+** bracketed version works but might not be necessary, defined versions (comtypes) are a MUST
