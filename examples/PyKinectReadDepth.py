@@ -3,6 +3,7 @@ from pykinect2.PyKinectV2 import *
 from pykinect2 import PyKinectRuntime
 import cv2
 import numpy as np
+import os
 
 import ctypes
 import _ctypes
@@ -16,6 +17,12 @@ if sys.hexversion >= 0x03000000:
     import _thread as thread
 else:
     import thread
+
+# from dotenv import load_dotenv
+# from pathlib import Path
+
+# dotenv_path = Path('C:/Users/user/Documents/GitHub/PyKinect2/examples/environment.yml')
+# load_dotenv(dotenv_path=dotenv_path)
 
 # colors for drawing different bodies 
 SKELETON_COLORS = [pygame.color.THECOLORS["red"], 
@@ -106,15 +113,21 @@ class BodyGameRuntime(object):
 
         # Kinect runtime object, we want only color and body frames 
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body | PyKinectV2.FrameSourceTypes_Depth)
+        self._kinect2 = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body | PyKinectV2.FrameSourceTypes_Depth)
+
 
         # back buffer surface for getting Kinect color frames, 32bit color, width and height equal to the Kinect color frame size
         self._frame_surface = pygame.Surface((self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height), 0, 32)
+        self._frame_surface2 = pygame.Surface((self._kinect2.color_frame_desc.Width, self._kinect2.color_frame_desc.Height), 0, 32)
+
 
         # here we will store skeleton data 
         self._bodies = None
 
         # visualise the skeleton data
         self._canvas = np.zeros((self._kinect.color_frame_desc.Height, self._kinect.color_frame_desc.Width, 3), np.uint8)
+        self._canvas2 = np.zeros((self._kinect2.color_frame_desc.Height, self._kinect2.color_frame_desc.Width, 3), np.uint8)
+
 
 
 
@@ -215,9 +228,16 @@ class BodyGameRuntime(object):
     def run(self):
 
         # -------- Set up camera and video file -----------
+        now = datetime.now().strftime('%d-%m-%y_%H-%M-%S')
+        output_dir = "output/"
+        if not (os.path.exists(output_dir)):
+            os.makedirs(output_dir) # Create a new directory because it does not exist
+        output_name = output_dir+now+'.avi'
+        annotated_output_name = output_dir+now+'_annotated.avi'
+
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter('output.avi', fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
-        out2 = cv2.VideoWriter('output2.avi', fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
+        out = cv2.VideoWriter(output_name, fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
+        out2 = cv2.VideoWriter(annotated_output_name, fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
         
         # -------- Set up text file -----------
         f = open("skeleton_data.csv", "a", newline='')
