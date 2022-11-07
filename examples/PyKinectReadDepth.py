@@ -200,7 +200,7 @@ class BodyGameRuntime(object):
         # current_time = now.strftime("%d_%m_%Y_%H_%M_%S")
         now = str(datetime.now())
         font = cv2.FONT_HERSHEY_PLAIN
-        cv2.putText(self._canvas, now, (20, 40), font, 2, (255, 255, 255), 2)
+        # cv2.putText(self._canvas, now, (20, 40), font, 2, (255, 255, 255), 2)
         row = [now]
         for each_joint in KINECT_JOINTS:
             
@@ -293,6 +293,9 @@ class BodyGameRuntime(object):
                 out.write(frame)
                 self._canvas = frame
                 frame = None
+                now = str(datetime.now())
+                font = cv2.FONT_HERSHEY_PLAIN
+                cv2.putText(self._canvas, now, (20, 40), font, 2, (255, 255, 255), 2)
 
             # --- Cool! We have a body frame, so can get skeletons
             if self._kinect.has_new_body_frame(): 
