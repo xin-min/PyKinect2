@@ -240,7 +240,11 @@ class BodyGameRuntime(object):
         out2 = cv2.VideoWriter(annotated_output_name, fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
         
         # -------- Set up text file -----------
-        f = open("skeleton_data.csv", "a", newline='')
+        f_dir = "joint/"
+        if not (os.path.exists(f_dir)):
+            os.makedirs(f_dir)
+        f_name = f_dir+now+'.csv'
+        f = open(f_name, "a", newline='')
         self._writer = csv.writer(f)
         self._writer.writerow(HEADER)
         time.sleep(3)
