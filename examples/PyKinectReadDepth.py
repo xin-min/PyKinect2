@@ -113,12 +113,12 @@ class BodyGameRuntime(object):
 
         # Kinect runtime object, we want only color and body frames 
         self._kinect = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body | PyKinectV2.FrameSourceTypes_Depth)
-        self._kinect2 = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body | PyKinectV2.FrameSourceTypes_Depth)
+        # self._kinect2 = PyKinectRuntime.PyKinectRuntime(PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body | PyKinectV2.FrameSourceTypes_Depth)
 
 
         # back buffer surface for getting Kinect color frames, 32bit color, width and height equal to the Kinect color frame size
         self._frame_surface = pygame.Surface((self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height), 0, 32)
-        self._frame_surface2 = pygame.Surface((self._kinect2.color_frame_desc.Width, self._kinect2.color_frame_desc.Height), 0, 32)
+        # self._frame_surface2 = pygame.Surface((self._kinect2.color_frame_desc.Width, self._kinect2.color_frame_desc.Height), 0, 32)
 
 
         # here we will store skeleton data 
@@ -126,7 +126,7 @@ class BodyGameRuntime(object):
 
         # visualise the skeleton data
         self._canvas = np.zeros((self._kinect.color_frame_desc.Height, self._kinect.color_frame_desc.Width, 3), np.uint8)
-        self._canvas2 = np.zeros((self._kinect2.color_frame_desc.Height, self._kinect2.color_frame_desc.Width, 3), np.uint8)
+        # self._canvas2 = np.zeros((self._kinect2.color_frame_desc.Height, self._kinect2.color_frame_desc.Width, 3), np.uint8)
 
 
 
@@ -161,60 +161,66 @@ class BodyGameRuntime(object):
         except: # need to catch it due to possible invalid positions (with inf)
             pass
 
-    def draw_body(self, joints, jointPoints, color, depth_points):
+    def draw_body(self, joints, jointPoints, color, depth_points, joint_orientations):
         # Torso
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_Head, PyKinectV2.JointType_Neck);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_Neck, PyKinectV2.JointType_SpineShoulder);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineShoulder, PyKinectV2.JointType_SpineMid);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineMid, PyKinectV2.JointType_SpineBase);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineShoulder, PyKinectV2.JointType_ShoulderRight);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineShoulder, PyKinectV2.JointType_ShoulderLeft);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineBase, PyKinectV2.JointType_HipRight);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineBase, PyKinectV2.JointType_HipLeft);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_Head, PyKinectV2.JointType_Neck);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_Neck, PyKinectV2.JointType_SpineShoulder);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineShoulder, PyKinectV2.JointType_SpineMid);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineMid, PyKinectV2.JointType_SpineBase);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineShoulder, PyKinectV2.JointType_ShoulderRight);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineShoulder, PyKinectV2.JointType_ShoulderLeft);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineBase, PyKinectV2.JointType_HipRight);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_SpineBase, PyKinectV2.JointType_HipLeft);
     
-        # Right Arm    
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ShoulderRight, PyKinectV2.JointType_ElbowRight);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ElbowRight, PyKinectV2.JointType_WristRight);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristRight, PyKinectV2.JointType_HandRight);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HandRight, PyKinectV2.JointType_HandTipRight);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristRight, PyKinectV2.JointType_ThumbRight);
+        # # Right Arm    
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ShoulderRight, PyKinectV2.JointType_ElbowRight);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ElbowRight, PyKinectV2.JointType_WristRight);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristRight, PyKinectV2.JointType_HandRight);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HandRight, PyKinectV2.JointType_HandTipRight);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristRight, PyKinectV2.JointType_ThumbRight);
 
-        # Left Arm
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ShoulderLeft, PyKinectV2.JointType_ElbowLeft);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ElbowLeft, PyKinectV2.JointType_WristLeft);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristLeft, PyKinectV2.JointType_HandLeft);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HandLeft, PyKinectV2.JointType_HandTipLeft);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristLeft, PyKinectV2.JointType_ThumbLeft);
+        # # Left Arm
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ShoulderLeft, PyKinectV2.JointType_ElbowLeft);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_ElbowLeft, PyKinectV2.JointType_WristLeft);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristLeft, PyKinectV2.JointType_HandLeft);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HandLeft, PyKinectV2.JointType_HandTipLeft);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_WristLeft, PyKinectV2.JointType_ThumbLeft);
 
-        # Right Leg
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HipRight, PyKinectV2.JointType_KneeRight);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_KneeRight, PyKinectV2.JointType_AnkleRight);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_AnkleRight, PyKinectV2.JointType_FootRight);
+        # # Right Leg
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HipRight, PyKinectV2.JointType_KneeRight);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_KneeRight, PyKinectV2.JointType_AnkleRight);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_AnkleRight, PyKinectV2.JointType_FootRight);
 
-        # Left Leg
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HipLeft, PyKinectV2.JointType_KneeLeft);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_KneeLeft, PyKinectV2.JointType_AnkleLeft);
-        self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_AnkleLeft, PyKinectV2.JointType_FootLeft);
+        # # Left Leg
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_HipLeft, PyKinectV2.JointType_KneeLeft);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_KneeLeft, PyKinectV2.JointType_AnkleLeft);
+        # self.draw_body_bone(joints, jointPoints, color, PyKinectV2.JointType_AnkleLeft, PyKinectV2.JointType_FootLeft);
         
         # now = datetime.now()
         # current_time = now.strftime("%d_%m_%Y_%H_%M_%S")
         now = str(datetime.now())
-        font = cv2.FONT_HERSHEY_PLAIN
+        # font = cv2.FONT_HERSHEY_PLAIN
         # cv2.putText(self._canvas, now, (20, 40), font, 2, (255, 255, 255), 2)
+
+        ###### 3d data #######
         row = [now]
         for each_joint in KINECT_JOINTS:
             
             # row.append((jointPoints[each_joint].x, jointPoints[each_joint].y))
-            temp_x = joints[each_joint].Position.x
-            temp_y = joints[each_joint].Position.y
-            temp_z = joints[each_joint].Position.z
-            row.append((temp_x,temp_y,temp_z))
-            # ---------- depth
-            # depth_x = depth_points[each_joint].x
-            # depth_y = depth_points[each_joint].y
-            # print((depth_x, depth_y, len(self._depth)))
-            # depth_z = self._depth[int(depth_y * 512 + depth_x)]
-            # row.append((depth_x,depth_y,depth_z))
+            row.append((joints[each_joint].Position.x, joints[each_joint].Position.y, joints[each_joint].Position.z))
+            # row.append((joint_orientations[each_joint].Orientation.x, joint_orientations[each_joint].Orientation.y, joint_orientations[each_joint].Orientation.z))
+
+        self._writer.writerow(row)
+
+
+        ###### quarternion data #######
+        row = [now]
+        for each_joint in KINECT_JOINTS:
+            
+            # row.append((jointPoints[each_joint].x, jointPoints[each_joint].y))
+            # row.append((joints[each_joint].Position.x, joints[each_joint].Position.y, joints[each_joint].Position.z))
+            row.append((joint_orientations[each_joint].Orientation.x, joint_orientations[each_joint].Orientation.y, joint_orientations[each_joint].Orientation.z))
+
         self._writer.writerow(row)
 
 
@@ -233,11 +239,11 @@ class BodyGameRuntime(object):
         if not (os.path.exists(output_dir)):
             os.makedirs(output_dir) # Create a new directory because it does not exist
         output_name = output_dir+now+'.avi'
-        annotated_output_name = output_dir+now+'_annotated.avi'
+        # annotated_output_name = output_dir+now+'_annotated.avi'
 
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         out = cv2.VideoWriter(output_name, fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
-        out2 = cv2.VideoWriter(annotated_output_name, fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
+        # out2 = cv2.VideoWriter(annotated_output_name, fourcc, 30.0, (self._kinect.color_frame_desc.Width, self._kinect.color_frame_desc.Height))
         
         # -------- Set up text file -----------
         f_dir = "joint/"
@@ -259,7 +265,7 @@ class BodyGameRuntime(object):
                 if event.type == pygame.QUIT: # If user clicked close
                     self._done = True # Flag that we are done so we exit this loop
                     out.release()
-                    out2.release()
+                    # out2.release()
                     f.close()
 
 
@@ -297,9 +303,9 @@ class BodyGameRuntime(object):
                 out.write(frame)
                 self._canvas = frame
                 frame = None
-                now = str(datetime.now())
-                font = cv2.FONT_HERSHEY_PLAIN
-                cv2.putText(self._canvas, now, (20, 40), font, 2, (255, 255, 255), 2)
+                # now = str(datetime.now())
+                # font = cv2.FONT_HERSHEY_PLAIN
+                # cv2.putText(self._canvas, now, (20, 40), font, 2, (255, 255, 255), 2)
 
             # --- Cool! We have a body frame, so can get skeletons
             if self._kinect.has_new_body_frame(): 
@@ -314,6 +320,17 @@ class BodyGameRuntime(object):
                         continue 
                     
                     joints = body.joints 
+
+                    #####################################
+
+                    # Find Joint Quaternions of Wrist Right
+
+                    # qx = body.joint_orientations[PyKinectV2. JointType_HandRight].Orientation.x
+                    # qy = body.joint_orientations[PyKinectV2. JointType_HandRight].Orientation.y
+                    # qz = body.joint_orientations[PyKinectV2. JointType_HandRight].Orientation.z
+                    # qw = body.joint_orientations[PyKinectV2. JointType_HandRight].Orientation.w
+
+                    #######################################
                     
                     ##################################### to be edited ##################
                     # f.write(str(joints))
@@ -324,7 +341,7 @@ class BodyGameRuntime(object):
                     self._depth = self._kinect.get_last_depth_frame()
                     # f.write(str(joint_points))
 
-                    self.draw_body(joints, joint_points, SKELETON_COLORS[i],depth_points)
+                    self.draw_body(joints, joint_points, SKELETON_COLORS[i],depth_points, body.joint_orientations)
 
             # temp = pygame.time.get_ticks()
 
@@ -333,7 +350,7 @@ class BodyGameRuntime(object):
             # cv2.line(self._canvas, (1920,0), (1920-temp,temp), (50, 0, 100), 8)
             ##################################### to be removed ##################
 
-            out2.write(self._canvas.astype('uint8'))
+            # out2.write(self._canvas.astype('uint8'))
 
             # --- copy back buffer surface pixels to the screen, resize it if needed and keep aspect ratio
             # --- (screen size may be different from Kinect's color frame size) 
