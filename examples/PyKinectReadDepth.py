@@ -128,6 +128,8 @@ class BodyGameRuntime(object):
         self._canvas = np.zeros((self._kinect.color_frame_desc.Height, self._kinect.color_frame_desc.Width, 3), np.uint8)
         # self._canvas2 = np.zeros((self._kinect2.color_frame_desc.Height, self._kinect2.color_frame_desc.Width, 3), np.uint8)
 
+        self.start_time=0
+
 
 
 
@@ -219,7 +221,7 @@ class BodyGameRuntime(object):
             
             # row.append((jointPoints[each_joint].x, jointPoints[each_joint].y))
             # row.append((joints[each_joint].Position.x, joints[each_joint].Position.y, joints[each_joint].Position.z))
-            row.append((joint_orientations[each_joint].Orientation.x, joint_orientations[each_joint].Orientation.y, joint_orientations[each_joint].Orientation.z))
+            row.append((joint_orientations[each_joint].Orientation.x, joint_orientations[each_joint].Orientation.y, joint_orientations[each_joint].Orientation.z, joint_orientations[each_joint].Orientation.w))
 
         self._writer.writerow(row)
 
@@ -267,6 +269,8 @@ class BodyGameRuntime(object):
                     out.release()
                     # out2.release()
                     f.close()
+                    print(self.start_time)
+                    print(datetime.now())
 
 
                 elif event.type == pygame.VIDEORESIZE: # window resized
@@ -286,6 +290,8 @@ class BodyGameRuntime(object):
             temp = pygame.time.get_ticks()
 
             if self._kinect.has_new_color_frame():
+                if self.start_time ==0:
+                    self.start_time=datetime.now()
                 frame = self._kinect.get_last_color_frame()
                 # print(len(frame))
                 self.draw_color_frame(frame, self._frame_surface)
