@@ -128,7 +128,8 @@ class BodyGameRuntime(object):
         self._canvas = np.zeros((self._kinect.color_frame_desc.Height, self._kinect.color_frame_desc.Width, 3), np.uint8)
         # self._canvas2 = np.zeros((self._kinect2.color_frame_desc.Height, self._kinect2.color_frame_desc.Width, 3), np.uint8)
 
-        self.start_time=0
+        self.start_time = 0
+        self.now_time = 0
 
 
 
@@ -270,7 +271,7 @@ class BodyGameRuntime(object):
                     # out2.release()
                     f.close()
                     print(self.start_time)
-                    print(datetime.now())
+                    print(self.now_time)
 
 
                 elif event.type == pygame.VIDEORESIZE: # window resized
@@ -307,6 +308,8 @@ class BodyGameRuntime(object):
                 ##################################### to be removed ##################
 
                 out.write(frame)
+                self.now_time=datetime.now()
+
                 self._canvas = frame
                 frame = None
                 # now = str(datetime.now())
@@ -371,7 +374,7 @@ class BodyGameRuntime(object):
             pygame.display.flip()
 
             # --- Limit to 60 frames per second
-            self._clock.tick(60)
+            self._clock.tick(30)
             # print(self._clock.get_fps())
 
         # Close our Kinect sensor, close the window and quit.
