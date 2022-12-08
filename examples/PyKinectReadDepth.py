@@ -238,7 +238,7 @@ class BodyGameRuntime(object):
 
         # -------- Set up camera and video file -----------
         now = datetime.now().strftime('%d-%m-%y_%H-%M-%S')
-        output_dir = "output/"
+        output_dir = "output_rx/"
         if not (os.path.exists(output_dir)):
             os.makedirs(output_dir) # Create a new directory because it does not exist
         output_name = output_dir+now+'.avi'
@@ -379,6 +379,8 @@ class BodyGameRuntime(object):
 
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
+        print(self.start_time)
+        print(self.now_time)
         pygame.quit()
 
 
