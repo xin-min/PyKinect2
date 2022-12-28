@@ -1,4 +1,5 @@
 ## read 
+## use conda env kinectpy3.6
 
 import csv
 import time
@@ -122,123 +123,133 @@ kinect_bones_colour = [
 # (23,24)
 ]
 
-file_csv = "07-12-22_17-06-45" #.csv # in joint folder
+files = []
+for file in os.listdir("../data/8Dec/joint_tx"):
+	if file.endswith(".csv"):
+		files.append(file)
+		# print(os.path.join("/mydir", file))
 
-output_dir = "output/new/"
-if not (os.path.exists(output_dir)):
-    os.makedirs(output_dir) # Create a new directory because it does not exist
-output_name = output_dir+file_csv+'_quat.avi'
-# annotated_output_name = output_dir+now+'_annotated.avi'
+for file_csv in files:
+	print(file_csv[:-4])
+	# time.sleep(3)
 
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter(output_name, fourcc, 30.0, (1920, 1800))
+	# file_csv = "/08-12-22_14-58-38"+".csv" #.csv # in joint folder
 
+	output_dir = "output/8Dec/joint_tx_quat/"
+	if not (os.path.exists(output_dir)):
+		os.makedirs(output_dir) # Create a new directory because it does not exist
+	output_name = output_dir+file_csv[:-4]+'.avi'
+	# annotated_output_name = output_dir+now+'_annotate
 
-with open('joint/'+file_csv+'.csv') as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
-    for row in csv_reader:
-    	# print(row)
-    	# time.sleep(2)
-    	if line_count > 0 and line_count%2==0:
-        	# row = row.replace('"', "")
-    		body_quat = []
-    		canvas = np.zeros((1800, 1920, 3), np.uint8)
-
-    		if print_date==1:
-    			font = cv2.FONT_HERSHEY_PLAIN
-    			cv2.putText(canvas, row[0], (20, 40), font, 2, (255, 255, 255), 2)
-
-    		transformed_quat = []
-    		
-    		for x in row[1:]:
-        		# print(x)
-        		x = x.replace(")", "")
-        		x = x.replace("(", "")
-        		x = x.split(", ")#[1:]
-        		# quat = [float(x[0]), float(x[1]), float(x[2]), float(x[3])]
-        		# quat = [i for i in x]
-        		quat = [float(x[1]), -float(x[2]), -float(x[3]), float(x[0])]
-        		body_quat.append(quat)
-
-    		v1 = [0,1,0]
-    		# v1 = [1,0,0]
+	fourcc = cv2.VideoWriter_fourcc(*'XVID')
+	out = cv2.VideoWriter(output_name, fourcc, 30.0, (1920, 1800))
 
 
-    		for quat in body_quat:
-        		transformed_quat.append(transforms3d.quaternions.rotate_vector(v1, quat, is_normalized=True))
-    		# print(np.array(transformed_quat))
+	with open('../data/8Dec/joint_tx/'+file_csv) as csv_file:
+		csv_reader = csv.reader(csv_file, delimiter=',')
+		line_count = 0
+		for row in csv_reader:
+			# print(row)
+			# time.sleep(2)
+			if line_count > 0 and line_count%2==0:
+				# row = row.replace('"', "")
+				body_quat = []
+				canvas = np.zeros((1800, 1920, 3), np.uint8)
 
-    		# joint_pos = np.array([[500,500]])
-    		joint_pos = [(800,500)]
-    		tf_quats = [(0.0, 0.0)]
-    		# tf_quats = np.array([(0.0,0.0)],)
-    		for index in range(1,len(transformed_quat)):
-    			# if not transformed_quat(index):
-    			# 	continue
-    			quat = transformed_quat[index]
-    			# quat = (quat[0]*10*KINECT_JOINTS[index], quat[1]*10*KINECT_JOINTS[index])
-    			quat = (quat[0]*50*KINECT_JOINTS[index], quat[1]*50*KINECT_JOINTS[index])
+				if print_date==1:
+					font = cv2.FONT_HERSHEY_PLAIN
+					cv2.putText(canvas, row[0], (20, 40), font, 2, (255, 255, 255), 2)
 
-    			# quat = np.array((quat[0]*100*KINECT_JOINTS[index], quat[2]*100*KINECT_JOINTS[index]))
-    			# print(quat)
-    			tf_quats.append(quat)
-    			# tf_quats= np.append(tf_quats, quat)
-    		# print(len(tf_quats))
+				transformed_quat = []
+				
+				for x in row[1:]:
+					# print(x)
+					x = x.replace(")", "")
+					x = x.replace("(", "")
+					x = x.split(", ")#[1:]
+					# quat = [float(x[0]), float(x[1]), float(x[2]), float(x[3])]
+					# quat = [i for i in x]
+					quat = [float(x[1]), -float(x[2]), -float(x[3]), float(x[0])]
+					body_quat.append(quat)
 
-    		for bones in kinect_bones:
-    			if len(joint_pos)==12 or len(joint_pos)==17:
-    				joint_pos.append((0.0, 0.0)) # joint 12/17
-    				joint_pos.append((0.0, 0.0)) # joint 13/18
-
-    				# joint_pos = np.append(joint_pos,(0,0)) # joint 12/17
-    				# joint_pos = np.append(joint_pos,(0,0)) # joint 13/18
-
-    			if len(joint_pos)==21:
-    				joint_pos.append((0.0, 0.0)) # joint 21
-
-    				# joint_pos = np.append(joint_pos,(0,0)) # joint 21
-
-    			joint1_index = bones[0]
-    			joint2_index = bones[1]
-    			current_pos = joint_pos[joint1_index]
-    			tf_joint = tf_quats[joint2_index]
-
-    			# print(type(tf_joint))
-    			# print(tf_joint)
-    			# print(type(current_pos))
-    			next_pos = (tf_joint[0] + current_pos[0], tf_joint[1] + current_pos[1])
-    			if bones[1]>4:
-    				next_pos = (-tf_joint[0] + current_pos[0], -tf_joint[1] +current_pos[1])
-
-    			joint_pos.append((next_pos))
-    			# np.append(joint_pos, next_pos)
-    			# print(current_pos)
-    		# print(joint_pos)
-    		# time.sleep(3)
+				v1 = [0,1,0]
+				# v1 = [1,0,0]
 
 
-    		idx = 0
-    		for bones in kinect_bones:
-        		start = (int(joint_pos[bones[0]][0]),int(joint_pos[bones[0]][1]))
-        		end = (int(joint_pos[bones[1]][0]),int(joint_pos[bones[1]][1]))
+				for quat in body_quat:
+					transformed_quat.append(transforms3d.quaternions.rotate_vector(v1, quat, is_normalized=True))
+				# print(np.array(transformed_quat))
 
-        		cv2.line(canvas, start, end, kinect_bones_colour[idx], 8) 
-        		idx+=1
-    		# cv2.imshow("skeleton_quaternions",canvas)
-    		# cv2.waitKey(0)
-    		# print(len(canvas[0]))
-    		out.write(canvas.astype('uint8'))
+				# joint_pos = np.array([[500,500]])
+				joint_pos = [(800,500)]
+				tf_quats = [(0.0, 0.0)]
+				# tf_quats = np.array([(0.0,0.0)],)
+				for index in range(1,len(transformed_quat)):
+					# if not transformed_quat(index):
+					# 	continue
+					quat = transformed_quat[index]
+					# quat = (quat[0]*10*KINECT_JOINTS[index], quat[1]*10*KINECT_JOINTS[index])
+					quat = (quat[0]*50*KINECT_JOINTS[index], quat[1]*50*KINECT_JOINTS[index])
 
-        	# print(coor)
-        	# body_coor.append(coor)
-        	# row = str(row).split("(")[1:]
-        	# print(row)
-        	# time.sleep(2)
-    #         print(f'Column names are {", ".join(row)}')
-    	line_count += 1
-    out.release()
-    #     else:
-    #         print(f'\t{row[0]} works in the {row[1]} department, and was born in {row[2]}.')
-    #         line_count += 1
-    # print(f'Processed {line_count} lines.')
+					# quat = np.array((quat[0]*100*KINECT_JOINTS[index], quat[2]*100*KINECT_JOINTS[index]))
+					# print(quat)
+					tf_quats.append(quat)
+					# tf_quats= np.append(tf_quats, quat)
+				# print(len(tf_quats))
+
+				for bones in kinect_bones:
+					if len(joint_pos)==12 or len(joint_pos)==17:
+						joint_pos.append((0.0, 0.0)) # joint 12/17
+						joint_pos.append((0.0, 0.0)) # joint 13/18
+
+						# joint_pos = np.append(joint_pos,(0,0)) # joint 12/17
+						# joint_pos = np.append(joint_pos,(0,0)) # joint 13/18
+
+					if len(joint_pos)==21:
+						joint_pos.append((0.0, 0.0)) # joint 21
+
+						# joint_pos = np.append(joint_pos,(0,0)) # joint 21
+
+					joint1_index = bones[0]
+					joint2_index = bones[1]
+					current_pos = joint_pos[joint1_index]
+					tf_joint = tf_quats[joint2_index]
+
+					# print(type(tf_joint))
+					# print(tf_joint)
+					# print(type(current_pos))
+					next_pos = (tf_joint[0] + current_pos[0], tf_joint[1] + current_pos[1])
+					if bones[1]>4:
+						next_pos = (-tf_joint[0] + current_pos[0], -tf_joint[1] +current_pos[1])
+
+					joint_pos.append((next_pos))
+					# np.append(joint_pos, next_pos)
+					# print(current_pos)
+				# print(joint_pos)
+				# time.sleep(3)
+
+
+				idx = 0
+				for bones in kinect_bones:
+					start = (int(joint_pos[bones[0]][0]),int(joint_pos[bones[0]][1]))
+					end = (int(joint_pos[bones[1]][0]),int(joint_pos[bones[1]][1]))
+
+					cv2.line(canvas, start, end, kinect_bones_colour[idx], 8) 
+					idx+=1
+				# cv2.imshow("skeleton_quaternions",canvas)
+				# cv2.waitKey(0)
+				# print(len(canvas[0]))
+				out.write(canvas.astype('uint8'))
+
+				# print(coor)
+				# body_coor.append(coor)
+				# row = str(row).split("(")[1:]
+				# print(row)
+				# time.sleep(2)
+		#         print(f'Column names are {", ".join(row)}')
+			line_count += 1
+		out.release()
+		#     else:
+		#         print(f'\t{row[0]} works in the {row[1]} department, and was born in {row[2]}.')
+		#         line_count += 1
+		# print(f'Processed {line_count} lines.')

@@ -1,4 +1,6 @@
 ## read 
+## use conda env kinectpy3.6
+
 
 import csv
 import time
@@ -91,63 +93,73 @@ kinect_bones_colour = [
 (255, 255, 0)
 ]
 
-file_csv = "07-12-22_17-06-45" #.csv # in joint folder
+files = []
+for file in os.listdir("../data/8Dec/joint_tx"):
+    if file.endswith(".csv"):
+        files.append(file)
+        # print(os.path.join("/mydir", file))
 
-output_dir = "output/new/"
-if not (os.path.exists(output_dir)):
-    os.makedirs(output_dir) # Create a new directory because it does not exist
-output_name = output_dir+file_csv+'.avi'
-# annotated_output_name = output_dir+now+'_annotated.avi'
+for file_csv in files:
+    print(file_csv[:-4])
+    # time.sleep(3)
 
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter(output_name, fourcc, 30.0, (1920, 1800))
+    # file_csv = "/08-12-22_14-58-38"+".csv" #.csv # in joint folder
 
-with open('joint/'+file_csv+'.csv') as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
-    for row in csv_reader:
-    	# print(row)
-    	# time.sleep(2)
-    	if (line_count%2)==1:
-        	# row = row.replace('"', "")
-    		body_coor = []
-    		canvas = np.zeros((1800, 1920, 3), np.uint8)
-    		
+    output_dir = "output/8Dec/joint_tx/"
+    if not (os.path.exists(output_dir)):
+        os.makedirs(output_dir) # Create a new directory because it does not exist
+    output_name = output_dir+file_csv[:-4]+'.avi'
+    # annotated_output_name = output_dir+now+'_annotated.avi'
 
-    		if print_date==1:
-    			font = cv2.FONT_HERSHEY_PLAIN
-    			cv2.putText(canvas, row[0], (20, 40), font, 2, (255, 255, 255), 2)
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(output_name, fourcc, 30.0, (1920, 1800))
 
-    		for x in row[1:]:
-        		# print(x)
-        		x = x.replace(")", "")
-        		x = x.replace("(", "")
-        		x = x.split(", ")#[1:]
-        		coor = [int(float(i)*500) for i in x]
-        		body_coor.append(coor)
-
-
-    		idx = 0
-    		for bones in kinect_bones:
-        		start = (body_coor[bones[0]][0]+900,500-body_coor[bones[0]][1])
-        		end = (body_coor[bones[1]][0]+900,500-body_coor[bones[1]][1])
-
-        		cv2.line(canvas, start, end, kinect_bones_colour[idx], 8) 
-        		idx+=1
-    		# cv2.imshow("skeleton",canvas)
-    		# cv2.waitKey(0)
-    		out.write(canvas.astype('uint8'))
-
-
-        	# print(coor)
-        	# body_coor.append(coor)
-        	# row = str(row).split("(")[1:]
+    with open('../data/8Dec/joint_tx/'+file_csv) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        line_count = 0
+        for row in csv_reader:
         	# print(row)
         	# time.sleep(2)
-    #         print(f'Column names are {", ".join(row)}')
-    	line_count += 1
-    out.release()
-    #     else:
-    #         print(f'\t{row[0]} works in the {row[1]} department, and was born in {row[2]}.')
-    #         line_count += 1
-    # print(f'Processed {line_count} lines.')
+        	if (line_count%2)==1:
+            	# row = row.replace('"', "")
+        		body_coor = []
+        		canvas = np.zeros((1800, 1920, 3), np.uint8)
+        		
+
+        		if print_date==1:
+        			font = cv2.FONT_HERSHEY_PLAIN
+        			cv2.putText(canvas, row[0], (20, 40), font, 2, (255, 255, 255), 2)
+
+        		for x in row[1:]:
+            		# print(x)
+        			x = x.replace(")", "")
+        			x = x.replace("(", "")
+        			x = x.split(", ")#[1:]
+        			coor = [int(float(i)*500) for i in x]
+        			body_coor.append(coor)
+
+
+        		idx = 0
+        		for bones in kinect_bones:
+           			start = (body_coor[bones[0]][0]+900,500-body_coor[bones[0]][1])
+           			end = (body_coor[bones[1]][0]+900,500-body_coor[bones[1]][1])
+
+           			cv2.line(canvas, start, end, kinect_bones_colour[idx], 8) 
+           			idx+=1
+        		# cv2.imshow("skeleton",canvas)
+        		# cv2.waitKey(0)
+        		out.write(canvas.astype('uint8'))
+
+
+            	# print(coor)
+            	# body_coor.append(coor)
+            	# row = str(row).split("(")[1:]
+            	# print(row)
+            	# time.sleep(2)
+        #         print(f'Column names are {", ".join(row)}')
+        	line_count += 1
+        out.release()
+        #     else:
+        #         print(f'\t{row[0]} works in the {row[1]} department, and was born in {row[2]}.')
+        #         line_count += 1
+        # print(f'Processed {line_count} lines.')
