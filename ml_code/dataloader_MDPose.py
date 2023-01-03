@@ -1,16 +1,21 @@
 import os
 import pandas as pd
+import torch
+from torch.utils.data import Dataset
+import re
 # from torchvision.io import read_image
 
 class CustomDataset(Dataset):
     def __init__(self, labels_dir = "../data/8Dec/labels/250/"): #, transform=None, target_transform=None):
         # self.img_labels = pd.read_csv(labels_dir)
         self.labels_dir = labels_dir
-        subfolders = ['rx', 'tx']
+        # subfolders = ['rx', 'tx']
+        subfolders = ['rx']
+        files = []
         for subfolder in subfolders:
             for file in os.listdir(self.labels_dir+subfolder):
                 if file.endswith(".txt"):
-                    files.append(file)
+                    files.append(self.labels_dir+subfolder+'/'+file)
         self.x_values = []
         self.y_values = []
 
@@ -26,7 +31,10 @@ class CustomDataset(Dataset):
                 doppler_time = line[0]
                 doppler = doppler_file.loc[:,doppler_time].values
                 doppler = [(re.findall(r"[-+]?(?:\d*\.*\d+)",x)) for x in doppler]
-                doppler = [[float(x[0]), float(x[1])] for x in doppler]
+                try:
+                    doppler = [[float(x[0]), float(x[1])] for x in doppler]
+                except:
+                    print(doppler)
                 # self.x_values.append(doppler)
                 # print(doppler)
                 # print(len(doppler))

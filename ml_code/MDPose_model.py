@@ -15,11 +15,11 @@
 ### conv layer -> batch normalisation -> RELU (accelerate training speed and add non-linearity) -> final layer (output estimated values)
 
 import numpy as np 
-import torch as th
+import torch
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader
-import dataloader_MDPose
+from dataloader_MDPose import CustomDataset
 
 batch_size = 4
 input_channels = 1 # doppler data at 1 time step 1x2400 data points
@@ -29,7 +29,7 @@ output_size = 100           # 25 joints * 4D quaternion :The output is predictio
 
 device = ("cuda" if torch.cuda.is_available() else "cpu") 
 
-train_dataloader = DataLoader(dataloader_MDPose, batch_size= batch_size, shuffle=True)
+train_dataloader = DataLoader(CustomDataset(), batch_size= batch_size, shuffle=True)
 # test_dataloader = DataLoader(test_data, batch_size=64, shuffle=True)
 # trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
 #                                         download=True, transform=transform)
@@ -46,35 +46,35 @@ train_dataloader = DataLoader(dataloader_MDPose, batch_size= batch_size, shuffle
 # Define neural network 
 class Network(nn.Module): 
 
-   def __init__(self, input_size, output_size):
-   	super(Network, self).__init__() 
-    self.cnn = nn.Sequential(
-    	nn.Conv1d(input_channels, 128, kernel_size=5, padding='same'),
-        nn.BatchNorm1D(conv1_output) # batch norm
-        nn.ReLU()
+	def __init__(self):#, input_size, output_size):
+		super(Network, self).__init__() 
+		self.cnn = nn.Sequential(
+			nn.Conv1d(input_channels, 128, kernel_size=5, padding='same'),
+			nn.BatchNorm1d(128), # batch norm
+			nn.ReLU(),
 
-        nn.Conv1d(128, 64, kernel_size=5, padding='same'),
-        nn.BatchNorm1D(conv1_output) # batch norm
-        nn.ReLU()
+			nn.Conv1d(128, 64, kernel_size=5, padding='same'),
+			nn.BatchNorm1d(64), # batch norm
+			nn.ReLU(),
 
-        nn.Conv1d(64, 32, kernel_size=5, padding='same'),
-        nn.BatchNorm1D(conv1_output) # batch norm
-        nn.ReLU()
+			nn.Conv1d(64, 32, kernel_size=5, padding='same'),
+			nn.BatchNorm1d(32), # batch norm
+			nn.ReLU(),
 
-        nn.flatten()
-        )
+			nn.Flatten()
+			)
 
-    self.lstm = nn.Sequential(
-	    nn.lstm(input_size = 32, hidden_size = 5, num_layers = 2)
-	    nn.linear(32, 64)
-	    nn.ReLU()
-	    nn.linear(64, 100)
-	    )
+		self.lstm = nn.Sequential(
+			nn.LSTM(input_size = 32, hidden_size = 5, num_layers = 2),
+			nn.Linear(32, 64),
+			nn.ReLU(),
+			nn.Linear(64, 100)
+			)
 
-    def forward(self, x): 
-       x1 = self.cnn(x) 
-       x2 = self.lstm(x1) 
-       return x2
+	def forward(self, x): 
+	   x1 = self.cnn(x) 
+	   x2 = self.lstm(x1) 
+	   return x2
  
 # Instantiate the model 
 criterion = nn.MSELoss()
@@ -83,25 +83,25 @@ optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
 for epoch in range(2):  # loop over the dataset multiple times
 
-    running_loss = 0.0
-    for i, data in enumerate(train_dataloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data
+	running_loss = 0.0
+	for i, data in enumerate(train_dataloader, 0):
+		# get the inputs; data is a list of [inputs, labels]
+		inputs, labels = data
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
+		# zero the parameter gradients
+		optimizer.zero_grad()
 
-        # forward + backward + optimize
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+		# forward + backward + optimize
+		outputs = model(inputs)
+		loss = criterion(outputs, labels)
+		loss.backward()
+		optimizer.step()
 
-        # print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
-            running_loss = 0.0
+		# print statistics
+		running_loss += loss.item()
+		if i % 2000 == 1999:    # print every 2000 mini-batches
+			print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+			running_loss = 0.0
 
 print('Finished Training')
 
