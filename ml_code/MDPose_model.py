@@ -17,8 +17,11 @@
 import numpy as np 
 import torch as th
 from torch import nn
+from torch import optim
+from torch.utils.data import DataLoader
+import dataloader_MDPose
 
-batch_size = ?
+batch_size = 4
 input_channels = 1 # doppler data at 1 time step 1x2400 data points
 input_shape = (batch_size, 1, 2400) # doppler data
 learning_rate = 0.01 
@@ -26,53 +29,100 @@ output_size = 100           # 25 joints * 4D quaternion :The output is predictio
 
 device = ("cuda" if torch.cuda.is_available() else "cpu") 
 
+train_dataloader = DataLoader(dataloader_MDPose, batch_size= batch_size, shuffle=True)
+# test_dataloader = DataLoader(test_data, batch_size=64, shuffle=True)
+# trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+#                                         download=True, transform=transform)
+# trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+#                                           shuffle=True, num_workers=2)
 
-self.cnn = nn.Sequential(
-    nn.Conv1d(input_channels, conv1_output, kernel_size=5, padding='same'),
-    nn.BatchNorm1D(conv1_output) # batch norm
-    nn.ReLU()
-
-
-    nn.Conv1d(32, 64, kernel_size=5, padding='same'),
-    nn.ReLU(),
-    nn.MaxPool1d(kernel_size=5, stride=5),
-    nn.Conv1d(64,128, kernel_size=5, padding='same'),
-    nn.ReLU(),
-    nn.MaxPool1d(kernel_size=4, stride=4),
-    # nn.ReLU(),
-    nn.Flatten(),
-)
-
-# Compute shape by doing one forward pass
-with th.no_grad():
-    n_flatten = self.cnn(
-        th.as_tensor(observation_space.sample()["laserscan"]).float().reshape((1,1,360))
-    ).shape[1]
-    # print(n_flatten)
-    # if len(n_flatten) < 3:
-    #     n_flatten = n_flatten[0] * n_flatten[1]
-
-self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU())
-self.total = nn.Sequential(self.cnn,self.linear)
-
+# testset = torchvision.datasets.CIFAR10(root='./data', train=False,
+#                                        download=True, transform=transform)
+# testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+#                                          shuffle=False, num_workers=2)
 
 
 
 # Define neural network 
 class Network(nn.Module): 
-   def __init__(self, input_size, output_size): 
-       super(Network, self).__init__() 
-        
-       self.layer1 = nn.Linear(input_size, 24) 
-       self.layer2 = nn.Linear(24, 24) 
-       self.layer3 = nn.Linear(24, output_size) 
 
+   def __init__(self, input_size, output_size):
+   	super(Network, self).__init__() 
+    self.cnn = nn.Sequential(
+    	nn.Conv1d(input_channels, 128, kernel_size=5, padding='same'),
+        nn.BatchNorm1D(conv1_output) # batch norm
+        nn.ReLU()
 
-   def forward(self, x): 
-       x1 = F.relu(self.layer1(x)) 
-       x2 = F.relu(self.layer2(x1)) 
-       x3 = self.layer3(x2) 
-       return x3 
+        nn.Conv1d(128, 64, kernel_size=5, padding='same'),
+        nn.BatchNorm1D(conv1_output) # batch norm
+        nn.ReLU()
+
+        nn.Conv1d(64, 32, kernel_size=5, padding='same'),
+        nn.BatchNorm1D(conv1_output) # batch norm
+        nn.ReLU()
+
+        nn.flatten()
+        )
+
+    self.lstm = nn.Sequential(
+	    nn.lstm(input_size = 32, hidden_size = 5, num_layers = 2)
+	    nn.linear(32, 64)
+	    nn.ReLU()
+	    nn.linear(64, 100)
+	    )
+
+    def forward(self, x): 
+       x1 = self.cnn(x) 
+       x2 = self.lstm(x1) 
+       return x2
  
 # Instantiate the model 
-model = Network(input_size, output_size) 
+criterion = nn.MSELoss()
+model = Network() 
+optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+
+for epoch in range(2):  # loop over the dataset multiple times
+
+    running_loss = 0.0
+    for i, data in enumerate(train_dataloader, 0):
+        # get the inputs; data is a list of [inputs, labels]
+        inputs, labels = data
+
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:    # print every 2000 mini-batches
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+            running_loss = 0.0
+
+print('Finished Training')
+
+# print("Model's state_dict:")
+# for param_tensor in model.state_dict():
+#     print(param_tensor, "\t", net.state_dict()[param_tensor].size())
+
+# print()
+
+# # Print optimizer's state_dict
+# print("Optimizer's state_dict:")
+# for var_name in optimizer.state_dict():
+#     print(var_name, "\t", optimizer.state_dict()[var_name])
+
+# PATH = "state_dict_model.pt"
+# torch.save(model.state_dict(), PATH)
+# model.load_state_dict(torch.load(PATH))
+# model.eval()
+
+
+
+
+
+
