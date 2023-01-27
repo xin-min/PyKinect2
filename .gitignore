@@ -63,3 +63,6 @@ target/
 *.fig
 *.mat
 *.csv
+*.txt
+*.pt
+*.DS_Store
