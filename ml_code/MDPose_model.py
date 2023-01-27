@@ -19,7 +19,7 @@ import torch
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader, random_split
-from dataloader_MDPose import CustomDataset, CustomDataset_class, CustomDataset_window
+from dataloader_MDPose import dataset_LSTM, CustomDataset, CustomDataset_class, CustomDataset_window, CustomDataset_window_changequat, dataset_LSTM_changequat
 from datetime import datetime
 # import math
 # import sys
@@ -31,18 +31,19 @@ torch.manual_seed(42)
 batch_size = 1
 input_channels = 4800 # doppler data at 1 time step 2x2400 data points
 input_shape = (batch_size, 1, 2400) # doppler data
-learning_rate = 0.01 
+learning_rate = 0.1
 output_size = 100           # 25 joints * 4D quaternion :The output is prediction results for quaternion.  
+num_epochs = 1001
 
 device = ("cuda" if torch.cuda.is_available() else "cpu") 
-f = open('outputlog_5epoch_poseest_huber.txt', 'a+')
-PATH = "state_dict_model_outputlog_5epoch_poseest_huber.pt"
+f = open('outputlog_new_joint_quat_1000_lr1.txt', 'a+')
+PATH = "state_dict_model_outputlog_new_joint_quat_1000_lr1.pt"
 
 # train_dataloader = DataLoader(CustomDataset_class(), batch_size= batch_size, shuffle=True)
 # print(str(torch.FloatTensor(train_dataloader).size))
 
 # train_dataloader = DataLoader(CustomDataset_class(), batch_size= batch_size, shuffle=True)
-[train_dataloader, val_dataloader, test_dataloader] = random_split(CustomDataset_window(), [0.7, 0.1, 0.2], generator=torch.Generator().manual_seed(42))
+[train_dataloader, val_dataloader, test_dataloader] = random_split(dataset_LSTM_changequat(), [1, 0, 0], generator=torch.Generator().manual_seed(42))
 
 
 # print(str(torch.FloatTensor(train_dataloader).size))
@@ -60,56 +61,87 @@ PATH = "state_dict_model_outputlog_5epoch_poseest_huber.pt"
 
 
 # Define neural network 
-class Network(nn.Module): 
+# class Network(nn.Module): 
 
-	def __init__(self):#, input_size, output_size):
+# 	def __init__(self):#, input_size, output_size):
+# 		super(Network, self).__init__() 
+# 		self.cnn = nn.Sequential(
+# 			nn.Conv1d(input_channels, 512, kernel_size=5, padding='same'),
+# 			nn.BatchNorm1d(1), # batch norm
+# 			nn.ReLU(),
+
+# 			nn.Conv1d(512, 256, kernel_size=5, padding='same'),
+# 			nn.BatchNorm1d(1), # batch norm
+# 			nn.ReLU(),
+
+# 			nn.Conv1d(256, 128, kernel_size=5, padding='same'),
+# 			nn.BatchNorm1d(1), # batch norm
+# 			nn.ReLU(),
+
+# 			nn.Conv1d(128, 64, kernel_size=5, padding='same'),
+# 			nn.BatchNorm1d(1), # batch norm
+# 			nn.ReLU(),
+
+# 			nn.Flatten()
+# 			)
+
+# 		# shape of input to lstm model: [batch_size, seq_len, input_size], input_size = number of features
+# 		self.lstm = nn.Sequential(
+# 			nn.LSTM(input_size = 64, hidden_size = 25, num_layers = 2, batch_first = True),
+# 			# nn.LSTM(input_size = 32, hidden_size = 5, num_layers = 2),
+
+# 			)
+
+# 		self.linear = nn.Sequential(
+# 			# nn.Linear(64, 6),
+# 			# nn.ReLU(),
+# 			nn.Linear(64, 100),
+# 			nn.ReLU(),
+# 			nn.Linear(100, 500)
+# 			)
+
+# 	def forward(self, x): 
+# 	   x1 = self.cnn(x) 
+# 	   x1 = torch.transpose(x1,0,1)
+# 	   # print(x1.shape)
+# 	   # x2 = self.lstm(x1) 
+# 	   # x2, (ht, ct) = self.lstm(x1)
+# 	   # print(x2.shape)
+# 	   # x2 = x2[0]
+# 	   # print(x2.shape)
+# 	   x3 = self.linear(x1)
+
+# 	   return x3
+
+class Network(nn.Module): 
+	# input to conv1d: (N, C, L)
+	# N is a batch size, C denotes a number of channels, L is a length of signal sequence
+
+	def __init__(self):#, input_size, output_size) x: 5*4800 y: 500 (flattened 5*100)
 		super(Network, self).__init__() 
 		self.cnn = nn.Sequential(
-			nn.Conv1d(input_channels, 512, kernel_size=5, padding='same'),
-			nn.BatchNorm1d(1), # batch norm
+			nn.Conv1d(input_channels, 512, kernel_size=5, padding='same'), 
+			nn.BatchNorm1d(512), # batch norm
 			nn.ReLU(),
 
 			nn.Conv1d(512, 256, kernel_size=5, padding='same'),
-			nn.BatchNorm1d(1), # batch norm
+			nn.BatchNorm1d(256), # batch norm
 			nn.ReLU(),
 
 			nn.Conv1d(256, 128, kernel_size=5, padding='same'),
-			nn.BatchNorm1d(1), # batch norm
+			nn.BatchNorm1d(128), # batch norm
 			nn.ReLU(),
 
 			nn.Conv1d(128, 64, kernel_size=5, padding='same'),
-			nn.BatchNorm1d(1), # batch norm
+			nn.BatchNorm1d(64), # batch norm
 			nn.ReLU(),
-
-
-
-			# nn.Conv1d(input_channels, 512, kernel_size=5, padding='same'),
-			# nn.BatchNorm1d(1), # batch norm
-			# nn.ReLU(),
-
-
-			# nn.Conv1d(512, 256, kernel_size=5, padding='same'),
-			# nn.BatchNorm1d(1), # batch norm
-			# nn.ReLU(),
-
-
-			# nn.Conv1d(256, 128, kernel_size=5, padding='same'),
-			# nn.BatchNorm1d(1), # batch norm
-			# nn.ReLU(),
-
-			# nn.Conv1d(128, 64, kernel_size=5, padding='same'),
-			# nn.BatchNorm1d(1), # batch norm
-			# nn.ReLU(),
-
-			# nn.Conv1d(64, 32, kernel_size=5, padding='same'),
-			# nn.BatchNorm1d(1), # batch norm
-			# nn.ReLU(),
-
-			nn.Flatten()
+			
+			# nn.Flatten()
 			)
 
+		# shape of input to lstm model: [batch_size, seq_len, input_size], input_size = number of features
 		self.lstm = nn.Sequential(
-			nn.LSTM(input_size = 64, hidden_size = 25, num_layers = 2),
+			nn.LSTM(input_size = 64, hidden_size = 25, num_layers = 2, batch_first = True),
 			# nn.LSTM(input_size = 32, hidden_size = 5, num_layers = 2),
 
 			)
@@ -117,21 +149,27 @@ class Network(nn.Module):
 		self.linear = nn.Sequential(
 			# nn.Linear(64, 6),
 			# nn.ReLU(),
-			nn.Linear(64, 100),
+			nn.Linear(25, 100),
 			nn.ReLU(),
 			nn.Linear(100, 500)
 			)
 
 	def forward(self, x): 
-	   x1 = self.cnn(x) 
-	   x1 = torch.transpose(x1,0,1)
+	   x1 = torch.transpose(x,0,1)
+	   x1 = torch.transpose(x1,1,2)
+
+
+	   x1 = self.cnn(x1) 
+	   # print(x1.shape)
+
+	   x1 = torch.transpose(x1,1,2)
 	   # print(x1.shape)
 	   # x2 = self.lstm(x1) 
-	   # x2, (ht, ct) = self.lstm(x1)
+	   x2, (ht, ct) = self.lstm(x1)
 	   # print(x2.shape)
 	   # x2 = x2[0]
 	   # print(x2.shape)
-	   x3 = self.linear(x1)
+	   x3 = self.linear(x2)
 
 	   return x3
 
@@ -143,13 +181,17 @@ optimizer = optim.SGD(model.parameters(), lr=0.0005, momentum=0.9)
 
 # f = open('outputlog_7Jan.txt', 'a+')
 
-for epoch in range(5):  # loop over the dataset multiple times
+for epoch in range(num_epochs):  # loop over the dataset multiple times
 
 	running_loss = 0.0
 	
 	for i, data in enumerate(train_dataloader, 0):
-		
+		# print(data.shape)
 		inputs, labels = data
+		# print(inputs.shape)
+		# print(labels.shape)
+
+
 		inputs = inputs.cuda()
 		inputs = inputs[None, :]
 		labels = labels.cuda()
@@ -163,6 +205,7 @@ for epoch in range(5):  # loop over the dataset multiple times
 
 		# forward + backward + optimize
 		outputs = model(torch.transpose(inputs,0,1))
+		# print(outputs.shape)
 		loss = criterion(outputs, labels)
 		loss.backward()
 		optimizer.step()
@@ -179,17 +222,17 @@ for epoch in range(5):  # loop over the dataset multiple times
 	f.write(str(now) + f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / (i+1):.5f}'+'\n')
 	# running_loss = 0.0
 	
-	val_loss = 0
-	for i, data in enumerate(val_dataloader, 0):
-		val_inputs, val_labels = data
-		val_inputs = val_inputs.cuda()
-		val_inputs = val_inputs[None, :]
-		val_labels = val_labels.cuda()
-		val_labels = val_labels[None, :]
-		val_outputs = model(torch.transpose(val_inputs,0,1))
-		val_loss += criterion(val_outputs, val_labels)
-		largest = i
-	print(f'val_loss = {val_loss / largest:.3f} \n' )
+	# val_loss = 0
+	# for i, data in enumerate(val_dataloader, 0):
+	# 	val_inputs, val_labels = data
+	# 	val_inputs = val_inputs.cuda()
+	# 	val_inputs = val_inputs[None, :]
+	# 	val_labels = val_labels.cuda()
+	# 	val_labels = val_labels[None, :]
+	# 	val_outputs = model(torch.transpose(val_inputs,0,1))
+	# 	val_loss += criterion(val_outputs, val_labels)
+	# 	largest = i
+	# print(f'val_loss = {val_loss / largest:.5f} \n' )
 
 print('Finished Training')
 f.close()
