@@ -112,6 +112,32 @@ def quat2vector(quats, cameraspace = True):
 		vector_array = [[-1*vector[0], -1*vector[1]] for vector in vector_array]
 	return vector_array
 
+##### function to transform absolute quaternion (x, y, z, w) to relative quaternion (deltaR)
+##### deltaR*q0 = q1, deltaR = q1*inv(q0)
+##### inputs: q0 (25*4 quat to be used at reference starting point), quat_array (n*25*4 quats to be transformed recursively)
+##### output: rel_quat ([n-1]*25*4 relative quat array)
+
+def abs2relquat (q0, quat_array):
+	ref_quats = q0
+	relative_quats = []
+	for quats in quat_array:
+		temp_quats = []
+		for q in range(24):
+			ref_quat = ref_quats[q]
+			quat = quats[q]
+			r = Rotation.from_quat(quat)
+			ref_r = Rotation.from_quat(ref_quat)
+
+			new_rot = Rotation.concatenate([r,ref_r.inv()])
+			new_quat = new_rot.as_quat()
+			temp_quats.append(new_quat)
+		ref_quats = quats
+		relative_quats.append(temp_quats)
+	return relative_quats
+
+
+
+
 
 ##### function to convert vector array to display on canvas
 ##### inputs: vector_array (25joints x 4), scale: multiplier, 
