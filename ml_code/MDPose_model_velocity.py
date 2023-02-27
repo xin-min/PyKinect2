@@ -12,18 +12,15 @@
 
 # Conv layer
 ### kernel size: 5x5 (fine-grained feature extraction)
-### conv layer -> batch normalisation -> RELU (accelerate training speed and add non-linearity) -> final layer (output estimated values)
+### conv layer -> batch normalisation -> ooRELU (accelerate training speed and add non-linearity) -> final layer (output estimated values)
 
 import numpy as np 
 import torch
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader, random_split
-from dataloader_MDPose import dataset_LSTM, CustomDataset, CustomDataset_class, CustomDataset_window, CustomDataset_window_changequat, dataset_LSTM_changequat
+from dataloader_MDPose import velocityDataset
 from datetime import datetime
-from torch.optim import lr_scheduler
-from torch.utils.data.sampler import SubsetRandomSampler
-import pandas as pd
 # import math
 # import sys
 
@@ -34,48 +31,21 @@ torch.manual_seed(42)
 batch_size = 100
 input_channels = 200 # doppler data at 1 time step 2x2400 data points
 input_shape = (batch_size, 1, 2400) # doppler data
-learning_rate = 0.03
+learning_rate = 0.01
 output_size = 100           # 25 joints * 4D quaternion :The output is prediction results for quaternion.  
-num_epochs = 80000
-random_seed = 42
-# error
+num_epochs = 24000
+
+error
 
 device = ("cuda" if torch.cuda.is_available() else "cpu") 
-f = open('IA_walk1_80000.txt', 'a+')
-PATH = "IA_walk1_80000.pt"
+f = open('outputlog_velocitymodel_17feb_walk_24000_trevor_MSE.txt', 'a+')
+PATH = "state_dict_model_outputlog_velocitymodel_17feb_walk_24000_trevor_MSE.pt"
 
 # train_dataloader = DataLoader(CustomDataset_class(), batch_size= batch_size, shuffle=True)
 # print(str(torch.FloatTensor(train_dataloader).size))
 
-
-train_dataloader = DataLoader(dataset_LSTM_changequat(), batch_size= 100, shuffle=False)
-
-# ############### split train-test
-# dataset = dataset_LSTM_changequat()
-# dataset_size = len(dataset)
-# indices = list(range(dataset_size))
-# shuffle_dataset = True
-# test_split = .2
-# split = int(np.floor(test_split * dataset_size))
-# if shuffle_dataset :
-# 	np.random.seed(random_seed)
-# 	np.random.shuffle(indices)
-# train_indices, test_indices = indices[split:], indices[:split]
-
-# # Creating PT data samplers and loaders:
-# train_sampler = SubsetRandomSampler(train_indices)
-# test_sampler = SubsetRandomSampler(test_indices)
-
-# train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, 
-# 										   sampler=train_sampler)
-# test_dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, 
-# 										   sampler=test_sampler)
-
-# ############### split train-test
-
-
-
-# [train_dataloader, val_dataloader, test_dataloader] = random_split(dataset_LSTM_changequat(), [0.8, 0, 0.2], generator=torch.Generator().manual_seed(42))
+train_dataloader = DataLoader(velocityDataset(), batch_size= batch_size, shuffle=False)
+# [train_dataloader, val_dataloader, test_dataloader] = random_split(velocityDataset(), [1, 0, 0], generator=torch.Generator().manual_seed(42))
 
 
 class Network(nn.Module): 
@@ -85,11 +55,18 @@ class Network(nn.Module):
 	def __init__(self):#, input_size, output_size) x: 5*4800 y: 500 (flattened 5*100)
 		super(Network, self).__init__() 
 		self.cnn = nn.Sequential(
+			# nn.BatchNorm1d(4800), # batch norm
+
+
+
 			nn.Conv1d(input_channels, 512, kernel_size=5, padding='same'), 
+			# nn.MaxPool1d(3,2,1),
 			nn.BatchNorm1d(512), # batch norm
 			nn.ReLU(),
 
 			nn.Conv1d(512, 256, kernel_size=5, padding='same'),
+			# nn.MaxPool1d(3,2,1),
+
 			nn.BatchNorm1d(256), # batch norm
 			nn.ReLU(),
 
@@ -97,9 +74,9 @@ class Network(nn.Module):
 			nn.BatchNorm1d(128), # batch norm
 			nn.ReLU(),
 
-			nn.Conv1d(128, 64, kernel_size=5, padding='same'),
-			nn.BatchNorm1d(64), # batch norm
-			nn.ReLU(),
+			# nn.Conv1d(128, 64, kernel_size=5, padding='same'),
+			# nn.BatchNorm1d(64), # batch norm
+			# nn.ReLU(),
 			
 			# nn.Flatten()
 			)
@@ -118,52 +95,53 @@ class Network(nn.Module):
 			# nn.ReLU(),
 			# nn.Linear(25, 64),
 			# nn.ReLU(),
-			nn.Linear(64, 100)
+			nn.Linear(128, 75)
 			)
+		self.double()
 
 	def forward(self, x):
 	   # print(x.shape)
-	   
-	   # x = x[0]
-	   x = torch.transpose(x,0,1)
-	   x = torch.transpose(x,1,2)
+
+	   # x = torch.transpose(x,1,2)
 	   # print(x.shape)
+	   # x = torch.transpose(x,0,2)
+
+
+	   # x = torch.transpose(x,0,2)
+	   # x = torch.transpose(x,1,2)
+	   x = torch.transpose(x,0,2)#.float()
+	   # x = torch.transpose(x,0,1)
+
+	   # print(x.type)
 
 
 	   x1 = self.cnn(x) 
+	   # # print(x1.shape)
+
+	   # x1 = torch.transpose(x1,0,2)
+	   x1 = torch.transpose(x1,1,2)
+
 	   # print(x1.shape)
 
-	   x1 = torch.transpose(x1,1,2)
 	   # print(x1.shape)
 	   # x2 = self.lstm(x1) 
 	   # x2, (ht, ct) = self.lstm(x1)
-	   # print(x2.shape)
-	   # x2 = x2[0]
-	   # print(x2.shape)
+
 	   x3 = self.linear(x1)
 	   # print(x3.shape)
-	   # error
+
 
 	   return x3
 
 # Instantiate the model 
-criterion = nn.HuberLoss()
+# criterion = nn.HuberLoss()
+criterion = nn.MSELoss()
+
 model = Network() 
 model.to(device)
 optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-# scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.9999)
-
 
 # f = open('outputlog_7Jan.txt', 'a+')
-
-# ############### split train-test
-
-# running_loss_graph = []
-# valid_loss_graph = []
-# c_graph=0
-
-# ############### split train-test
-
 
 for epoch in range(num_epochs):  # loop over the dataset multiple times
 
@@ -172,86 +150,57 @@ for epoch in range(num_epochs):  # loop over the dataset multiple times
 	for i, data in enumerate(train_dataloader, 0):
 		# print(data.shape)
 		inputs, labels = data
-		# print(inputs.shape)
+		# print(len(inputs))#.shape)
+		# print(len(inputs[0]))
 		# print(labels.shape)
 
 
-		inputs = inputs.cuda()
+		# inputs = torch.Tensor(torch.flatten(inputs)).cuda()
+		# inputs = torch.flatten(torch.FloatTensor(inputs)).cuda()
+		# inputs = torch.FloatTensor(inputs).cuda()
+		inputs = torch.stack(inputs).double().cuda()
+		# inputs = torch.FloatTensor(inputs)
+		# inputs = inputs.cuda()
 		inputs = inputs[None, :]
-		labels = labels.cuda()
-		# labels = labels[None, :]
-		# labels = labels[0]
-
+		labels = torch.Tensor(labels).cuda()
+		labels = labels[None, :].double()
+		labels = torch.transpose(labels,0,1)
+		# labels = torch.transpose(labels,1,2)
 
 		# print(inputs.shape)
 		# print(labels.shape)
+
+		# # zero the parameter gradients
+		# optimizer.zero_grad()
+
+		# forward + backward + optimize
+		# print(inputs.shape)
+		outputs = model(inputs)#torch.transpose(inputs,0,1))
+		# print(outputs)
+		# print(outputs.size)
+		# print(outputs)
+		# print(labels)
+		loss = criterion(outputs, labels)
 
 		# zero the parameter gradients
 		optimizer.zero_grad()
-
-		# forward + backward + optimize
-		outputs = model(inputs)
-		# print(outputs.size)
-		# print(outputs.shape)
-		loss = criterion(outputs, labels)
+		
 		loss.backward()
 		optimizer.step()
 
 		# print statistics
 		running_loss += loss.item()
-		# if i % 2000 == 1999:    # print every 5000 mini-batches
+		# if i % 2000 == 1999:    # print every 5000 mini-batches 
 		# 	now = datetime.now()
 		# 	print(str(now) + f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
 		# 	f.write(str(now) + f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}'+'\n')
 		# 	running_loss = 0.0
-
-	# ################ split train-test
-
-	# valid_loss = 0.0
-	# model.eval()     # Optional when not using Model Specific layer
-	
-	# for j, data in enumerate(test_dataloader, 0):
-	# 	# print(j)
-	# 	inputs, labels = data
-	# 	# print(inputs.shape)
-	# 	# print(labels.shape)
-
-
-	# 	inputs = inputs.cuda()
-	# 	inputs = inputs[None, :]
-	# 	labels = labels.cuda()
-	# 	# if torch.cuda.is_available():
-	# 	# 	data, labels = data.cuda(), labels.cuda()
-		
-	# 	target = model(inputs)
-	# 	loss = criterion(target,labels)
-	# 	valid_loss += loss.item()# * i.size(0)
-
-	# ################ split train-test
-
-	
-
-
 	now = datetime.now()
-	if (epoch+1)%100==0:
-		
+	if (epoch+1)%100 ==0:
+		# print(outputs)
 		print(str(now) + f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / (i+1):.5f}')
 		f.write(str(now) + f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / (i+1):.5f}'+'\n')
-
-	# ################ split train-test
-
-	# 	print(str(now) + f'[{epoch + 1}, {i + 1:5d}] val_loss: {valid_loss / (j+1):.5f}')
-	# 	f.write(str(now) + f'[{epoch + 1}, {i + 1:5d}] val_loss: {valid_loss / (j+1):.5f}'+'\n')
-
-
-	# 	running_loss_graph.append(running_loss / (i+1))
-	# 	valid_loss_graph.append(valid_loss / (j+1))
-	# 	c_graph+=1
-	# ################ split train-test
-
-
-
-	# scheduler.step()
+		
 	# running_loss = 0.0
 	
 	# val_loss = 0
@@ -265,31 +214,14 @@ for epoch in range(num_epochs):  # loop over the dataset multiple times
 	# 	val_loss += criterion(val_outputs, val_labels)
 	# 	largest = i
 	# print(f'val_loss = {val_loss / largest:.5f} \n' )
+# print(outputs)
 
 print('Finished Training')
 f.close()
 
 torch.save(model.state_dict(), PATH)
-# model.load_state_dict(torch.load(PATH))
-# model.eval()
-
-# ################ split train-test
-
-# x = range(c_graph)
-# # print([running_loss_graph,valid_loss_graph])
-# df = pd.DataFrame ([running_loss_graph,valid_loss_graph]).transpose()
-# # pd.options.plotting.backend = "plotly"
-# df.columns = ['running loss', 'val loss']
-# fig = df.plot(backend = "plotly")
-# fig.show()
-# fig.write_image("images/fig1.png")
-# # time.sleep(10)
-
-# ################ split train-test
-
-
-
-
+model.load_state_dict(torch.load(PATH))
+model.eval()
 
 # print("Model's state_dict:")
 # for param_tensor in model.state_dict():

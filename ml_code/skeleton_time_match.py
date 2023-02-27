@@ -6,7 +6,7 @@ import numpy as np
 from collections import defaultdict
 
 ################# to configure ###################
-buffer_window = 250 #0.25s
+buffer_window = 'smallest' #0.25s
 receiver = "rx/" # "tx/" or "rx/"
 ##############################################################
 
@@ -82,7 +82,7 @@ else: ### for "rx/"
 
 for k in range(len(joint_matlab)):
 	textfile = output_dir + str(buffer_window) + "/" + receiver + joint_matlab[k][1] +'.txt'
-	f = open(textfile, 'x')
+	f = open(textfile, 'w+')
 
 	joint_file = joint_root_dir + joint_matlab[k][0]
 	if receiver =="tx/":
@@ -122,21 +122,43 @@ for k in range(len(joint_matlab)):
 	# for j in range(lowest, len(joint_times)):
 	# 	print(j)
 
+	# ######################### buffer window ####################
+	# for i in range(len(matlab_times)):
+	# 	# print(matlab_times[i])
+	# 	for j in range(lowest, len(joint_times)):
+	# 		if j%2==0:
+	# 			continue
+	# 		# if matlab_times[i]>145854000:
+	# 		# 	print(joint_times[j])
+	# 		if joint_times[j] < (matlab_times[i]-buffer_window):
+	# 			# lowest = joint_times[j]
+	# 			continue
+	# 		elif joint_times[j] > (matlab_times[i]+buffer_window):
+	# 			continue
+
+	# 		else:
+	# 			matching_index[matlab_times[i]].append(j)
+	# 	# time.sleep(2)
+
+	######################### smallest index ####################
 	for i in range(len(matlab_times)):
+		lowest = 250
+		lowest_idx = 99999
 		# print(matlab_times[i])
 		for j in range(lowest, len(joint_times)):
 			if j%2==0:
 				continue
 			# if matlab_times[i]>145854000:
 			# 	print(joint_times[j])
-			if joint_times[j] < (matlab_times[i]-buffer_window):
-				# lowest = joint_times[j]
-				continue
-			elif joint_times[j] > (matlab_times[i]+buffer_window):
-				continue
+			if abs(joint_times[j]-matlab_times[i])<lowest:
+				lowest = abs(joint_times[j]-matlab_times[i])
+				lowest_idx = j
+		if lowest_idx<99999:
+			matching_index[matlab_times[i]].append(lowest_idx)
+				
 
-			else:
-				matching_index[matlab_times[i]].append(j)
+			# else:
+				
 		# time.sleep(2)
 
 	# print((len(matlab_times),len(matching_index)))

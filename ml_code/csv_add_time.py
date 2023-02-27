@@ -73,7 +73,7 @@ for file_csv in files:
 	start_time = start_times[count]
 	count +=1
 	full_file_name = output_dir + "/" + file_csv
-	csv_input = pd.read_csv(full_file_name)
+	csv_input = pd.read_csv(full_file_name, header = None)
 	num_col = len(csv_input.columns)
 	header = []
 	for x in range(num_col):

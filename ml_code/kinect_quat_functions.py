@@ -92,80 +92,159 @@ kinect_bones_colour = [
 # (23,24)
 ]
 
+kinect_bones_colour_ground = [
+(0, 175, 175),
+(175, 175, 175),
+(175, 175, 175),
+(175, 175, 175),
+(0, 175, 0),
+(0, 0, 175),
+(175, 0, 0),
+(175, 175, 0),
+
+
+(0, 175, 0),
+(0, 175, 0),
+(0, 175, 0),
+
+(0, 0, 175),
+(0, 0, 175),
+(0, 0, 175),
+
+(175, 0, 0),
+(175, 0, 0),
+# (20,21),
+
+(175, 175, 0),
+(175, 175, 0)
+# (23,24)
+]
+
+##### function to convert velocity (x, y, z) to coordinates
+##### assume doppler is 20samples/1 -> 0.05s time difference
+##### inputs: array of velocities, original coordinates
+##### returns: array of vectors (default: screen space 2d, else camera space 3d)
+
+def vel2canvas(vel, ori_coor, canvas, cameraspace = False, ):
+	new_coor = []
+	for idx in range(25):
+		vel_x, vel_y, vel_z = vel[idx]
+		coor_x, coor_y, coor_z = ori_coor[idx]
+		new_coor.append([coor_x + vel_x*0.05, coor_y + vel_y*0.05, coor_z + vel_z*0.05])
+
+	idx = 0
+	for bones in kinect_bones:
+		#### joint pos: array of joint coordinates, bones[0] and bones[1]: index of parent and child respectively
+		start = (int(new_coor[bones[0]][0]),int(new_coor[bones[0]][1])) #### picture coordinates of parent joint
+		end = (int(new_coor[bones[1]][0]),int(new_coor[bones[1]][1])) #### picture coordinates of child joint
+
+		cv2.line(canvas, start, end, kinect_bones_colour[idx], 8) 
+		idx+=1
+	return canvas
+
+
+	# vector_array = []
+	# for quat in quats:
+	# 	try:
+	# 		r = Rotation.from_quat(quat)
+	# 		vector_array.append(r.apply(v1, inverse=False))
+	# 	except:
+	# 		vector_array.append([0,0,0])
+	# if not cameraspace:
+	# 	###### to transform to 2d picture frame (0,0) at top left
+	# 	###### vector is pointing from the parent to the child
+	# 	vector_array = [[-1*vector[0], -1*vector[1]] for vector in vector_array]
+	# return vector_array
 
 ##### function to convert absolute quaternion (x, y, z, w) to vector (parent to child joint)
 ##### inputs: array of absolute quaternions (normalised)
-##### returns: array of vectors (default: camera space 3d, else screen space 2d)
+##### returns: array of vectors (default: screen space 2d, else camera space 3d)
 
-def quat2vector(quats, cameraspace = True):
+def quat2vector_test(quats, cameraspace = False):
 	v1 = [0, 1, 0]
 	vector_array = []
+
 	for quat in quats:
 		try:
 			r = Rotation.from_quat(quat)
-			vector_array.append(r.apply(v1, inverse=False))
+			r1 = Rotation.from_quat([-0.048561075941746204, 0.045677638790408474, 0.053275385651582706, -0.05212589089491002])
+			v2 = r.apply(v1, inverse=False)
+			vector_array.append(r1.apply(v2, inverse=True))
 		except:
+			# print(quat)
+			# time.sleep(1)
 			vector_array.append([0,0,0])
 	if not cameraspace:
 		###### to transform to 2d picture frame (0,0) at top left
 		###### vector is pointing from the parent to the child
-		vector_array = [[-1*vector[0], -1*vector[1]] for vector in vector_array]
+		# vector_array = [[-1*vector[0], -1*vector[1]] for vector in vector_array]
+		vector_array = [[-1*vector[0], -1*vector[1], -1*vector[2]] for vector in vector_array]
+
 	return vector_array
 
-##### function to transform absolute quaternion (x, y, z, w) to relative quaternion (deltaR)
-##### deltaR*q0 = q1, deltaR = q1*inv(q0)
-##### inputs: q0 (25*4 quat to be used at reference starting point), quat_array (n*25*4 quats to be transformed recursively)
-##### output: rel_quat ([n-1]*25*4 relative quat array)
+def quat2vector(quats, cameraspace = False):
+	v1 = [0, 1, 0]
+	vector_array = []
 
-def abs2relquat (q0, quat_array):
-	ref_quats = q0
-	relative_quats = []
-	for quats in quat_array:
-		temp_quats = []
-		for q in range(24):
-			ref_quat = ref_quats[q]
-			quat = quats[q]
+	for quat in quats:
+		try:
 			r = Rotation.from_quat(quat)
-			ref_r = Rotation.from_quat(ref_quat)
+			# r1 = Rotation.from_quat([-0.048561075941746204, 0.045677638790408474, 0.053275385651582706, -0.05212589089491002])
+			# v2 = r.apply(v1, inverse=False)
+			vector_array.append(r.apply(v1, inverse=False))
+		except:
+			# print(quat)
+			# time.sleep(1)
+			vector_array.append([0,0,0])
+	if not cameraspace:
+		###### to transform to 2d picture frame (0,0) at top left
+		###### vector is pointing from the parent to the child
+		# vector_array = [[-1*vector[0], -1*vector[1]] for vector in vector_array]
+		vector_array = [[-1*vector[0], -1*vector[1], -1*vector[2]] for vector in vector_array]
 
-			new_rot = Rotation.concatenate([r,ref_r.inv()])
-			new_quat = new_rot.as_quat()
-			temp_quats.append(new_quat)
-		ref_quats = quats
-		relative_quats.append(temp_quats)
-	return relative_quats
-
+	return vector_array
 
 
 
 
 ##### function to convert vector array to display on canvas
-##### inputs: vector_array (25joints x 4), scale: multiplier, 
+##### inputs: vector_array (25joints x 2), scale: multiplier, 
 #####        head_pos: 2d coordinate of head, canvas: 3d numpy array [length, breadth, RGB]
 ##### outputs: canvas (3d numpy array: [length, breadth, RGB])
 
-def vector2screen (vector_array, scale, head_pos, canvas):
-	joint_pos = [head_pos]
+def vector2screen (vector_array, scale, head_pos, canvas, ground=0):
+	# print(len(vector_array))
+	# print(len(vector_array[0]))
 
-	for bones in kinect_bones:
+	joint_pos = [head_pos]
+	# joint_pos.append((800, 150, 800))
+	# joint_pos.append((800, 200, 800))
+	# joint_pos.append((800, 300, 800))
+	if ground==1:
+		colour=kinect_bones_colour_ground
+	else:
+		colour = kinect_bones_colour
+
+
+	for bones in kinect_bones[0:]:
 		if len(joint_pos)==12 or len(joint_pos)==17:  ##### ignore thumb and finger positions 
-			joint_pos.append((0.0, 0.0)) # joint 12/17
-			joint_pos.append((0.0, 0.0)) # joint 13/18
+			joint_pos.append((0.0, 0.0, 0.0)) # joint 12/17
+			joint_pos.append((0.0, 0.0, 0.0)) # joint 13/18
 
 		if len(joint_pos)==21:  ##### ignore left foot posiiton (right foot position is index 24(last), so no need to append)
-			joint_pos.append((0.0, 0.0)) # joint 21
+			joint_pos.append((0.0, 0.0, 0.0)) # joint 21
 
 		parent_index = bones[0] #### index of parent
 		child_index = bones[1] #### index of child
 		current_pos = joint_pos[parent_index] #### picture coordinates of parent joint
 
 		vector = vector_array[child_index] #### vector pointing from parent joint to child joint
-		vector = (vector[0]*scale*KINECT_JOINTS[child_index], vector[1]*scale*KINECT_JOINTS[child_index])
+		vector = (vector[0]*scale*KINECT_JOINTS[child_index], vector[1]*scale*KINECT_JOINTS[child_index], vector[2]*scale*KINECT_JOINTS[child_index])
 
 		#### find the child joint (parent coordinate + vector from parent to child)
-		next_pos = [current_pos[0] + vector[0] , current_pos[1] + vector[1]]
+		next_pos = [current_pos[0] + vector[0] , current_pos[1] + vector[1], current_pos[2] + vector[2]]
 		if bones[1]<5:
-			next_pos = [-vector[0] + current_pos[0], -vector[1] +current_pos[1]]
+			next_pos = [-vector[0] + current_pos[0], -vector[1] +current_pos[1], -vector[2] +current_pos[2]]
 
 		joint_pos.append(next_pos)
 
@@ -175,7 +254,7 @@ def vector2screen (vector_array, scale, head_pos, canvas):
 		start = (int(joint_pos[bones[0]][0]),int(joint_pos[bones[0]][1])) #### picture coordinates of parent joint
 		end = (int(joint_pos[bones[1]][0]),int(joint_pos[bones[1]][1])) #### picture coordinates of child joint
 
-		cv2.line(canvas, start, end, kinect_bones_colour[idx], 8) 
+		cv2.line(canvas, start, end, colour[idx], 8) 
 		idx+=1
 	return canvas
 

@@ -8,7 +8,7 @@ import cv2
 import transforms3d
 import os
 from scipy.spatial.transform import Rotation
-from kinect_quat_functions import quat2vector, vector2screen
+from kinect_quat_functions import quat2vector, vector2screen, abs2relquat, rel2absquat
 
 
 
@@ -154,6 +154,7 @@ for file_csv in files:
 	with open('../data/8Dec/joint_tx/'+file_csv) as csv_file:
 		csv_reader = csv.reader(csv_file, delimiter=',')
 		line_count = 0
+		file_quats = []
 		for row in csv_reader:
 			if line_count > 0 and line_count%2==0:
 				body_quat = []
@@ -166,19 +167,43 @@ for file_csv in files:
 
 					quat = [float(x[0]), float(x[1]), float(x[2]), float(x[3])]
 					body_quat.append(quat)
+				file_quats.append(body_quat)
 
-				vector_array = quat2vector(body_quat, cameraspace = False)
-				head_pos = (800,100)
-				scale = 50
-				canvas = np.zeros((1800, 1920, 3), np.uint8)
-				canvas = vector2screen(vector_array, scale, head_pos, canvas)
+				# q0 = body_quat[0]
+				# body_quat = body_quat[1:]
+				# relative_quats = abs2relquat(q0, body_quat)
+				# body_quat = rel2absquat(q0, relative_quats)
 
-				# if print_date==1:
-				# 	font = cv2.FONT_HERSHEY_PLAIN
-				# 	cv2.putText(canvas, row[0], (20, 40), font, 2, (255, 255, 255), 2)
+				# vector_array = quat2vector(body_quat, cameraspace = False)
+				# head_pos = (800,100)
+				# scale = 50
+				# canvas = np.zeros((1800, 1920, 3), np.uint8)
+				# canvas = vector2screen(vector_array, scale, head_pos, canvas)
 
-				cv2.imshow("skeleton_quaternions",canvas)
-				cv2.waitKey(0)
+				# # if print_date==1:
+				# # 	font = cv2.FONT_HERSHEY_PLAIN
+				# # 	cv2.putText(canvas, row[0], (20, 40), font, 2, (255, 255, 255), 2)
+
+				# cv2.imshow("skeleton_quaternions",canvas)
+				# cv2.waitKey(0)
 
 			line_count += 1
+			
+		q0 = file_quats[0]
+		file_quats = file_quats[1:]
+		relative_quats = abs2relquat(q0, file_quats)
+		file_quats = rel2absquat(q0, relative_quats)
+		for body_quat in file_quats:
+			vector_array = quat2vector(body_quat, cameraspace = False)
+			head_pos = (800,100)
+			scale = 50
+			canvas = np.zeros((1800, 1920, 3), np.uint8)
+			canvas = vector2screen(vector_array, scale, head_pos, canvas)
+
+			# if print_date==1:
+			# 	font = cv2.FONT_HERSHEY_PLAIN
+			# 	cv2.putText(canvas, row[0], (20, 40), font, 2, (255, 255, 255), 2)
+
+			cv2.imshow("skeleton_quaternions",canvas)
+			cv2.waitKey(0)
 		out.release()
