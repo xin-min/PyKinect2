@@ -13,7 +13,7 @@ from velocity_functions import loadDataXYZ
 
 class velocityDataset(Dataset):
     def __init__(self):
-        self.x_values, self.y_values = loadDataXYZ(tx = True, actions = ["DW"])#, "kick", "punch", "sit", "SW"])#"sit"])#, "punch"])#["DW", "kick", "punch", "sit", "SW"]) #["walk", "DW", "free", "kick", "pickup", "punch", "sit", "SW", "all"]
+        self.x_values, self.y_values, self.y_coor = loadDataXYZ(tx = True, actions = ["DW"])#, "kick", "punch", "sit", "SW"])#"sit"])#, "punch"])#["DW", "kick", "punch", "sit", "SW"]) #["walk", "DW", "free", "kick", "pickup", "punch", "sit", "SW", "all"]
         # self.x_values = [[float(x) for x in x_value] for x_value in self.x_values]
         # self.y_values = [[float(y) for y in y_value] for y_value in self.y_values]
         # self.x_values = np.array(self.x_values)
@@ -23,7 +23,7 @@ class velocityDataset(Dataset):
         return len(self.x_values)
 
     def __getitem__(self, index): 
-        return (self.x_values[index], self.y_values[index])
+        return (self.x_values[index], self.y_values[index], self.y_coor[index])
 
 class CustomDataset(Dataset):
     def __init__(self, labels_dir = "../data/8Dec/labels/250/"): #, transform=None, target_transform=None):
@@ -541,21 +541,21 @@ class dataset_LSTM_changequat(Dataset):
 
         files = [
         '../data/8Dec/labels/smallest/rx/IAwalk1.txt', 
-        # '../data/8Dec/labels/smallest/rx/IAwalk2.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_DW1.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_DW2.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_free2.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_free3.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_Kick1.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_Kick2.txt', 
+        '../data/8Dec/labels/smallest/rx/IAwalk2.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_DW1.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_DW2.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_free2.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_free3.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_Kick1.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_Kick2.txt', 
         # # '../data/8Dec/labels/smallest/rx/IA_pickup1.txt', 
         # # '../data/8Dec/labels/smallest/rx/IA_pickup2.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_Punch1.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_Punch2.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_Punch1.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_Punch2.txt', 
         # '../data/8Dec/labels/smallest/rx/IA_sit1.txt', 
         # '../data/8Dec/labels/smallest/rx/IA_sit2.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_SW1.txt', 
-        # '../data/8Dec/labels/smallest/rx/IA_SW2.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_SW1.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_SW2.txt', 
         # # '../data/8Dec/labels/smallest/rx/trevor_pickup1.txt', 
         # # '../data/8Dec/labels/smallest/rx/trevor_pickup2.txt', 
         # '../data/8Dec/labels/smallest/rx/trevor_sit1.txt', 
@@ -568,6 +568,7 @@ class dataset_LSTM_changequat(Dataset):
 
         for file in files:
             f = open(file, "r")
+            print(file)
             lines = f.readlines()
 
             doppler_file = pd.read_csv(lines[0][:-1])
@@ -576,8 +577,9 @@ class dataset_LSTM_changequat(Dataset):
             for x in range(3,len(lines)): ### start from second timestamp so the first timestamp can be used as ref
                 line = lines[x].split(":")
                 doppler_time = line[0] # 1 doppler every 0.05s = 50 in doppler time. doppler time: HHMMSS---
-                temp_doppler = doppler_file.loc[:,doppler_time].values
-                temp_doppler = np.transpose([temp_doppler])
+                temp_dopplers = doppler_file.loc[:,str(int(doppler_time)-200):doppler_time].values
+                temp_dopplers = np.transpose(temp_dopplers)
+                dopplers = []
 
 
 
@@ -590,9 +592,9 @@ class dataset_LSTM_changequat(Dataset):
                 #     continue
                 # temp_doppler = np.transpose(temp_doppler)
 
-                doppler =[]
+                # doppler =[]
 
-                for temp in temp_doppler:
+                for temp in temp_dopplers:
                     temp = [(re.findall(r"[-+]?(?:\d*\.*\d+)",x)) for x in temp] # extracts all numbers, removes 'j' for the complex part of the number
                     # try:
                     #     temp = [[float(x[0]), float(x[1])] for x in temp] # converts from complex to 2d float (x + yj) to (x, y)
@@ -600,18 +602,22 @@ class dataset_LSTM_changequat(Dataset):
                     #     # print(temp)
                     #     continue 
                     # doppler.append(torch.flatten(torch.FloatTensor(temp)))
+                    doppler = []
                     for x in temp:
                         doppler.append(math.sqrt(float(x[0])*float(x[0]) + float(x[1])*float(x[1])))
             # except:
             #     continue
                 # print(doppler[:50]+doppler[-50:])
 
-                mean_value = sum(doppler[:50]+doppler[-50:])/len(doppler[:50]+doppler[-50:])
-                doppler = [10*math.log10(x/mean_value) for x in doppler]
-                doppler = doppler[1100:1300] ### middle 200
-                for i in range(len(doppler)):
-                    if doppler[i]<10:
-                        doppler[i]=0
+                    mean_value = sum(doppler[:50]+doppler[-50:])/len(doppler[:50]+doppler[-50:])
+                    doppler = [10*math.log10(x/mean_value) for x in doppler]
+                    doppler = doppler[1100:1300] ### middle 200
+                    for i in range(len(doppler)):
+                        if doppler[i]<10:
+                            doppler[i]=0
+                    dopplers.append(doppler)
+                dopplers = np.array(dopplers, dtype="f")
+
 
                 idx = int(line[1].strip("\n").strip('][ '))
                 new_indexes = []
@@ -698,11 +704,14 @@ class dataset_LSTM_changequat(Dataset):
                 # if torch.flatten(torch.stack(doppler)).shape[0]<4800:
                 #     print(torch.flatten(torch.stack(doppler)).shape[0])
                 #     continue
+                if len(dopplers)<5:
+                    void_value = 1
+
                 if void_value==1:
                     continue
 
 
-                self.x_values.append(torch.FloatTensor(doppler))
+                self.x_values.append(dopplers)
                 # self.x_values.append(torch.flatten(torch.stack(doppler))) # multiple quat values for the same doppler
                 self.y_values.append(torch.FloatTensor(relative_quats))
                 # self.y_values.append(torch.FloatTensor(temp_quats[1:]))
@@ -752,7 +761,7 @@ class dataset_LSTM_changequat_singlemap(Dataset):
         # '../data/8Dec/labels/smallest/tx/trevor_sit1.txt', 
         # '../data/8Dec/labels/smallest/tx/trevor_sit2.txt'
         # # '../data/8Dec/labels/smallest/tx/trevor_walk1.txt', 
-        # # '../data/8Dec/labels/smallest/tx/trevor_walk2.txt'
+        # # '../data/8Dec/labels/smallest/tx/trevor_walk2.txt' 
         # ]
         files = [
         # '../data/8Dec/labels/smallest/rx/IA_DW2.txt', 
@@ -761,9 +770,9 @@ class dataset_LSTM_changequat_singlemap(Dataset):
 
 
 
-        '../data/8Dec/labels/smallest/rx/IAwalk1.txt', 
+        # '../data/8Dec/labels/smallest/rx/IAwalk1.txt', 
         # '../data/8Dec/labels/smallest/rx/IAwalk2.txt'
-        # '../data/8Dec/labels/smallest/rx/IA_Punch1.txt', 
+        '../data/8Dec/labels/smallest/rx/IA_Punch1.txt', 
         # '../data/8Dec/labels/smallest/rx/IA_Punch2.txt', 
         # '../data/8Dec/labels/smallest/rx/trevor_walk1.txt'
         # '../data/8Dec/labels/smallest/rx/IA_Kick1.txt'
@@ -784,9 +793,9 @@ class dataset_LSTM_changequat_singlemap(Dataset):
             for x in range(3,len(lines)): ### start from second timestamp so the first timestamp can be used as ref
                 line = lines[x].split(":")
                 doppler_time = line[0] # 1 doppler every 0.05s = 50 in doppler time. doppler time: HHMMSS---
-                temp_doppler = doppler_file.loc[:,doppler_time].values
-                temp_doppler = np.transpose([temp_doppler])
-
+                temp_dopplers = doppler_file.loc[:,str(int(doppler_time)-200):doppler_time].values
+                temp_dopplers = np.transpose(temp_dopplers)
+                dopplers = []
 
 
 
@@ -799,9 +808,9 @@ class dataset_LSTM_changequat_singlemap(Dataset):
                 #     continue
                 # temp_doppler = np.transpose(temp_doppler)
 
-                doppler =[]
+                # doppler =[]
 
-                for temp in temp_doppler:
+                for temp in temp_dopplers:
                     temp = [(re.findall(r"[-+]?(?:\d*\.*\d+)",x)) for x in temp] # extracts all numbers, removes 'j' for the complex part of the number
                     # try:
                     #     temp = [[float(x[0]), float(x[1])] for x in temp] # converts from complex to 2d float (x + yj) to (x, y)
@@ -809,19 +818,57 @@ class dataset_LSTM_changequat_singlemap(Dataset):
                     #     # print(temp)
                     #     continue 
                     # doppler.append(torch.flatten(torch.FloatTensor(temp)))
+                    doppler = []
                     for x in temp:
                         doppler.append(math.sqrt(float(x[0])*float(x[0]) + float(x[1])*float(x[1])))
             # except:
             #     continue
+                # print(doppler[:50]+doppler[-50:])
 
-                # mean_value = mean(doppler[:50]+doppler[-50:])
-                mean_value = sum(doppler[:50]+doppler[-50:])/len(doppler[:50]+doppler[-50:])
+                    mean_value = sum(doppler[:50]+doppler[-50:])/len(doppler[:50]+doppler[-50:])
+                    doppler = [10*math.log10(x/mean_value) for x in doppler]
+                    doppler = doppler[1100:1300] ### middle 200
+                    for i in range(len(doppler)):
+                        if doppler[i]<10:
+                            doppler[i]=0
+                    dopplers.append(doppler)
+                dopplers = np.array(dopplers, dtype="f")
 
-                doppler = [10*math.log10(x/mean_value) for x in doppler]
-                doppler = doppler[1100:1300] ### middle 200
-                for i in range(len(doppler)):
-                    if doppler[i]<10:
-                        doppler[i]=0
+
+
+
+            #     # try:
+            #     #     temp_doppler = doppler_file.loc[:,str(int(doppler_time)-200):doppler_time].values # this should return 5*4800 (doppler at that time step + 4 time steps before it)
+            #     # except: # first few (4) time stamps in file
+            #     #     continue
+            #     #     #str(int(doppler_time)-200):
+            #     # if len(temp_doppler[0])<5:
+            #     #     continue
+            #     # temp_doppler = np.transpose(temp_doppler)
+
+            #     doppler =[]
+
+            #     for temp in temp_doppler:
+            #         temp = [(re.findall(r"[-+]?(?:\d*\.*\d+)",x)) for x in temp] # extracts all numbers, removes 'j' for the complex part of the number
+            #         # try:
+            #         #     temp = [[float(x[0]), float(x[1])] for x in temp] # converts from complex to 2d float (x + yj) to (x, y)
+            #         # except:
+            #         #     # print(temp)
+            #         #     continue 
+            #         # doppler.append(torch.flatten(torch.FloatTensor(temp)))
+            #         for x in temp:
+            #             doppler.append(math.sqrt(float(x[0])*float(x[0]) + float(x[1])*float(x[1])))
+            # # except:
+            # #     continue
+
+            #     # mean_value = mean(doppler[:50]+doppler[-50:])
+            #     mean_value = sum(doppler[:50]+doppler[-50:])/len(doppler[:50]+doppler[-50:])
+
+            #     doppler = [10*math.log10(x/mean_value) for x in doppler]
+            #     doppler = doppler[1100:1300] ### middle 200
+            #     for i in range(len(doppler)):
+            #         if doppler[i]<10:
+            #             doppler[i]=0
 
                 idx = int(line[1].strip("\n").strip('][ '))
                 new_indexes = []
@@ -893,11 +940,16 @@ class dataset_LSTM_changequat_singlemap(Dataset):
                 # if torch.flatten(torch.stack(doppler)).shape[0]<4800:
                 #     print(torch.flatten(torch.stack(doppler)).shape[0])
                 #     continue
+                if len(dopplers)<5:
+                    void_value = 1
+
                 if void_value==1:
                     continue
 
+                self.x_values.append(dopplers)
 
-                self.x_values.append(torch.FloatTensor(doppler)) # multiple quat values for the same doppler
+
+                # self.x_values.append(torch.FloatTensor(doppler)) # multiple quat values for the same doppler
                 
                 # self.x_values.append(torch.flatten(torch.stack(doppler))) # multiple quat values for the same doppler
                 self.y_values.append(torch.FloatTensor(relative_quats))

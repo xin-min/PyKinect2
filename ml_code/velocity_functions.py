@@ -19,32 +19,99 @@ import math
 from statistics import mean
 
 joints = [
-'Head',
-'Neck',
-'SpineShoulder',
-'SpineMid',
-'SpineBase',
-'ShoulderRight',
-'ShoulderLeft',
-'HipRight',
-'HipLeft',
-'ElbowRight',
-'WristRight',
-'HandRight',
-'HandTipRight',
-'ThumbRight',
-'ElbowLeft',
-'WristLeft',
-'HandLeft',
-'HandTipLeft',
-'ThumbLeft',
-'KneeRight',
-'AnkleRight',
-'FootRight',
-'KneeLeft',
-'AnkleLeft',
-'FootLeft',
+'Head', #0
+'Neck', #1
+'SpineShoulder', #2
+'SpineMid', #3
+'SpineBase', #4
+'ShoulderRight', #5
+'ShoulderLeft', #6
+'HipRight', #7
+'HipLeft', #8
+'ElbowRight', #9
+'WristRight', #10
+'HandRight', #11
+'HandTipRight', #12
+'ThumbRight', #13
+'ElbowLeft', #14
+'WristLeft', #15
+'HandLeft', #16
+'HandTipLeft', #17
+'ThumbLeft', #18
+'KneeRight', #19
+'AnkleRight', #20
+'FootRight', #21
+'KneeLeft', #22
+'AnkleLeft', #23
+'FootLeft', #24
 ]
+# 1-2-3-2-4-5-6-5-4-2-7-8-9-8-7-2-1-10-11-12-13-12-11-10-14-15-16-15-14-10-1
+# (refer to picture in paper)
+
+joints_tree_order = [ # kinect numbering - name - paper numbering
+
+3,  # 'SpineMid', #1
+1,  # 'Neck', #2
+0,  # 'Head', #3
+1,  # 'Neck', #2
+6,  # 'ShoulderLeft', #4
+14,  # 'ElbowLeft', #5
+15,  # 'WristLeft', #6
+14,  # 'ElbowLeft', #5
+6,  # 'ShoulderLeft', #4
+1,  # 'Neck', #2
+5,  # 'ShoulderRight', #7
+9,  # 'ElbowRight', #8
+10,  # 'WristRight', #9
+9, # 'ElbowRight', #8
+5, # 'ShoulderRight', #7
+1,  # 'Neck', #2
+3,  # 'SpineMid', #1
+4,  # 'SpineBase', #10
+8,  # 'HipLeft', #11
+22,  # 'KneeLeft', #12
+23,  # 'AnkleLeft', #13
+22,  # 'KneeLeft', #12
+8,  # 'HipLeft', #11
+4,  # 'SpineBase', #10
+7,  # 'HipRight', #14
+19,  # 'KneeRight', #15
+20,  # 'AnkleRight', #16
+19,  # 'KneeRight', #15
+8,  # 'HipRight', #14
+4,  # 'SpineBase', #10
+3,  # 'SpineMid', #1
+]
+
+# # joints_tree = [ # numbering only
+# 'SpineMid', #1
+# 'Neck', #2
+# 'Head', #3
+# 'ShoulderLeft', #4
+# 'ElbowLeft', #5
+# 'WristLeft', #6
+# 'ShoulderRight', #7
+# 'ElbowRight', #8
+# 'WristRight', #9
+# 'SpineBase', #10
+# 'HipLeft', #11
+# 'KneeLeft', #12
+# 'AnkleLeft', #13
+# 'HipRight', #14
+# 'KneeRight', #15
+# 'AnkleRight', #16
+
+# ##### unused
+# # 'SpineShoulder', #
+# # 'HandRight', #
+# # 'HandTipRight', #
+# # 'ThumbRight', #
+# # 'HandLeft', #
+# # 'HandTipLeft', #
+# # 'ThumbLeft', #
+# # 'FootRight', #
+# # 'FootLeft', #
+# # ]
 
 def loadDataXYZ(tx = True, actions = "all"):
 
@@ -78,25 +145,27 @@ def loadDataXYZ(tx = True, actions = "all"):
 		'../data/8Dec/labels/smallest/rx/IAwalk2.txt', 
 		'../data/8Dec/labels/smallest/rx/IA_DW1.txt', 
 		'../data/8Dec/labels/smallest/rx/IA_DW2.txt', 
-		# '../data/8Dec/labels/smallest/rx/IA_free2.txt', 
-		# '../data/8Dec/labels/smallest/rx/IA_free3.txt', 
-		# '../data/8Dec/labels/smallest/rx/IA_Kick1.txt', 
-		# '../data/8Dec/labels/smallest/rx/IA_Kick2.txt', 
-		# # '../data/8Dec/labels/smallest/rx/IA_pickup1.txt', 
-		# # '../data/8Dec/labels/smallest/rx/IA_pickup2.txt', 
-		# '../data/8Dec/labels/smallest/rx/IA_Punch1.txt', 
-		# '../data/8Dec/labels/smallest/rx/IA_Punch2.txt', 
+		'../data/8Dec/labels/smallest/rx/IA_free2.txt', 
+		'../data/8Dec/labels/smallest/rx/IA_free3.txt', 
+		'../data/8Dec/labels/smallest/rx/IA_Kick1.txt', 
+		'../data/8Dec/labels/smallest/rx/IA_Kick2.txt', 
+		# '../data/8Dec/labels/smallest/rx/IA_pickup1.txt', 
+		# '../data/8Dec/labels/smallest/rx/IA_pickup2.txt', 
+		'../data/8Dec/labels/smallest/rx/IA_Punch1.txt', 
+		'../data/8Dec/labels/smallest/rx/IA_Punch2.txt', 
 		# '../data/8Dec/labels/smallest/rx/IA_sit1.txt', 
 		# '../data/8Dec/labels/smallest/rx/IA_sit2.txt', 
-		# '../data/8Dec/labels/smallest/rx/IA_SW1.txt', 
-		# '../data/8Dec/labels/smallest/rx/IA_SW2.txt', 
-		# # '../data/8Dec/labels/smallest/rx/trevor_pickup1.txt', 
-		# # '../data/8Dec/labels/smallest/rx/trevor_pickup2.txt', 
+		'../data/8Dec/labels/smallest/rx/IA_SW1.txt', 
+		'../data/8Dec/labels/smallest/rx/IA_SW2.txt', 
+		# '../data/8Dec/labels/smallest/rx/trevor_pickup1.txt', 
+		# '../data/8Dec/labels/smallest/rx/trevor_pickup2.txt', 
 		# '../data/8Dec/labels/smallest/rx/trevor_sit1.txt', 
-		# '../data/8Dec/labels/smallest/rx/trevor_sit2.txt'
-		# # '../data/8Dec/labels/smallest/rx/trevor_walk1.txt', 
-		# # '../data/8Dec/labels/smallest/rx/trevor_walk2.txt'
+		# '../data/8Dec/labels/smallest/rx/trevor_sit2.txt',
+		# '../data/8Dec/labels/smallest/rx/trevor_walk1.txt', 
+		# '../data/8Dec/labels/smallest/rx/trevor_walk2.txt'
 	]
+
+
 	if actions == "all":
 		files = action_files
 	else:
@@ -108,16 +177,28 @@ def loadDataXYZ(tx = True, actions = "all"):
 			# print(action_files[2*index])
 			# print(action_files[2*index+1])
 
+	# files = [
+	# # '../data/8Dec/labels/smallest/rx/IAwalk1.txt']#, 
+	# # '../data/8Dec/labels/smallest/rx/IAwalk2.txt'
+	# '../data/8Dec/labels/smallest/rx/trevor_walk1.txt', 
+	# # '../data/8Dec/labels/smallest/rx/trevor_walk2.txt'
+	# 	]
+	files = action_files
 	files = [
-	# '../data/8Dec/labels/smallest/rx/IAwalk1.txt']#, 
-	# '../data/8Dec/labels/smallest/rx/IAwalk2.txt'
-	'../data/8Dec/labels/smallest/rx/trevor_walk1.txt', 
-	# '../data/8Dec/labels/smallest/rx/trevor_walk2.txt'
-		]
+	# '../data/8Dec/labels/smallest/rx/IA_kick2.txt', 
+
+	# '../data/8Dec/labels/smallest/rx/IA_Punch2.txt',
+	# '../data/8Dec/labels/smallest/rx/IA_Kick1.txt',
+
+	'../data/8Dec/labels/smallest/rx/IAwalk2.txt',
+	# 	'../data/8Dec/labels/smallest/rx/trevor_walk1.txt', 
+
+	]
 
 	f1 = open('confuseddoppler.txt', 'w+')
 	x_values = []
 	y_values = []
+	y_coor = []
 	doppler_img_list = []
 	velocity_list_list = []
 	# print(files)
@@ -130,37 +211,83 @@ def loadDataXYZ(tx = True, actions = "all"):
 		doppler_file = pd.read_csv(lines[0][:-1])
 		coord_file = pd.read_csv(lines[1][:-1])
 		# print(lines[1][:-1])
+		prev_idx = -1
 		for x in range(2,len(lines)):
 			line = lines[x].split(":")
 			doppler_time = line[0] # 1 doppler every 0.05s = 50 in doppler time. doppler time: HHMMSS---
 
-			temp_doppler = doppler_file.loc[:,doppler_time].values
-			temp_doppler = np.transpose(temp_doppler)
+			# temp_dopplers = doppler_file.loc[:,doppler_time].values #each doppler spaced 50ms apart, so total 5 dopplers
+			# print(len(temp_dopplers))
+			# print(len(temp_dopplers[0]))
 
-			temp_doppler =[(re.findall(r"[-+]?(?:\d*\.*\d+)",x)) for x in temp_doppler]
-			doppler= []
-			# doppler_img = []
-			try:
-				for x in temp_doppler:
-					# doppler.append(float(x[0]))
-					# doppler.append(float(x[1]))
 
-					doppler.append(math.sqrt(float(x[0])*float(x[0]) + float(x[1])*float(x[1])))
-			except:
-				continue
 
-			mean_value = mean(doppler[:50]+doppler[-50:])
-			doppler = [10*math.log10(x/mean_value) for x in doppler]
-			doppler = doppler[1100:1300] ### middle 200
-			for i in range(len(doppler)):
-				if doppler[i]<10:
-					doppler[i]=0
+			temp_dopplers = doppler_file.loc[:,str(int(doppler_time)-200):doppler_time].values #each doppler spaced 50ms apart, so total 5 dopplers
+			# print(len(temp_dopplers))
+			# print(len(temp_dopplers[0]))
+			# print(len(temp_dopplers[0][0]))
+			# erorr
+			dopplers = []
+			
+			temp_dopplers = np.transpose(temp_dopplers)
+			# temp_dopplers = np.transpose(temp_dopplers, (1,2))
+
+			# print(len(temp_dopplers))
+			# print(len(temp_dopplers[0]))
+			# error
+
+			for temp_doppler in temp_dopplers:
+				# print(len(temp_doppler))
+				# print(len(temp_doppler[0]))
+				# temp_doppler = np.transpose(temp_doppler)
+				# print(len(temp_doppler))
+				# print(len(temp_doppler[0]))
+				# error
+
+
+				temp_doppler =[(re.findall(r"[-+]?(?:\d*\.*\d+)",x)) for x in temp_doppler]
+				doppler= []
+				# doppler_img = []
+				try:
+					for x in temp_doppler:
+						# print(x)
+						# doppler.append(float(x[0]))
+						# doppler.append(float(x[1]))
+
+						doppler.append(math.sqrt(float(x[0])*float(x[0]) + float(x[1])*float(x[1])))
+				except:
+					# print("skipped")
+					# time.sleep(1)
+					continue
+
+				mean_value = mean(doppler[:50]+doppler[-50:])
+				doppler = [10*math.log10(x/mean_value) for x in doppler]
+				doppler = doppler[1100:1300] ### middle 200
+				for i in range(len(doppler)):
+					if doppler[i]<10:
+						doppler[i]=0
+				dopplers.append(doppler)
+			dopplers = np.array(dopplers, dtype="f")
+			# print(dopplers)
+			# # error
+			# print(len(dopplers))
+			# print(len(dopplers[0]))
+
 
 			indexes = int(line[1].strip("\n").strip('][ ').split(', ')[0])
+			if indexes ==prev_idx:
+				continue
+			else:
+				prev_idx = indexes
 			new_indexes = [indexes-5, indexes-3, indexes-1, indexes+1, indexes+3]
 
 			time_list = []
 			coor_list = []
+			current_coor = coord_file.iloc[new_indexes[2]].values
+			current_coor = current_coor[1:]
+			current_coor = [(re.findall(r"[-+]?(?:\d*\.*\d+)",x)) for x in current_coor]
+			current_coor = [[float(x[0]), float(x[1]), float(x[2])] for x in current_coor]
+
 
 			try:
 
@@ -197,6 +324,27 @@ def loadDataXYZ(tx = True, actions = "all"):
 						temp_coor.append(coor_list[z][x][y])
 					slope = np.polyfit(time_list,temp_coor,1)[0]
 					velocity_list[x,y] = slope#*10+1
+			velocity_flattened = np.zeros((75))
+
+
+
+			#################################### rearrange to fit tree structure (31 nodes in total = 31*3 = 93values yay)
+
+			joints_tree_velocity = []
+			for order in joints_tree_order:
+				joints_tree_velocity.append(velocity_list[order])
+
+			velocity_list = joints_tree_velocity
+			velocity_flattened = np.zeros((93))
+
+
+			############################ END TREE STRUCTURE ################################
+
+
+
+
+
+
 			# print(velocity_list)
 			# doppler = np.ones((1,4800))
 			# x_values.append(doppler) # multiple quat values for the same doppler
@@ -216,7 +364,7 @@ def loadDataXYZ(tx = True, actions = "all"):
 			# # plt.close()
 			# # error
 
-			velocity_flattened = np.zeros((75))
+			# velocity_flattened = np.zeros((93))
 			counter = 0
 			for z in velocity_list:
 				for y in z:
@@ -231,9 +379,17 @@ def loadDataXYZ(tx = True, actions = "all"):
 					counter+=1
 					# for x in y:
 					# 	velocity_flattened.append(x)
+			if len(dopplers)<5:
+				continue
+			# print(len(dopplers))
+			# print(len(dopplers[0]))
+			# print(len(velocity_flattened))
+			# print(len(velocity_flattened[0]))
 
-			x_values.append(doppler)
+
+			x_values.append(dopplers)
 			y_values.append(velocity_flattened)
+			y_coor.append(current_coor)
 
 		# 	############### test velocity and doppler matching
 		# 	temp_vel = []
@@ -293,7 +449,7 @@ def loadDataXYZ(tx = True, actions = "all"):
 		# 	############### end test velocity and doppler matching
 
 
-	return (x_values,y_values)
+	return (x_values,y_values, y_coor)
 
 # loadDataXYZ(tx = True, actions = "all")
 

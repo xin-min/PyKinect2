@@ -13,9 +13,9 @@ from kinect_quat_functions_nocv import abs2relquat, rel2absquat
 
 
 # files = ["./state_dict_model_outputlog_change_quat_100.txt"]
-files_ref = "./punch1_testremovenoise_ref.txt"
-files_ground = "./punch1_testremovenoise_ground.txt"
-files = ["./punch1_testremovenoise_model.txt"]
+files_ref = "./quat_lstm/0303_lstm_punch1_ref.txt"
+files_ground = "./quat_lstm/0303_lstm_punch1_ground.txt"
+files = ["./quat_lstm/0303_lstm_punch1_model.txt"]
 
 for file in files:
 	# print(file_csv[:-4])
@@ -23,13 +23,13 @@ for file in files:
 
 	# file_csv = "/08-12-22_14-58-38"+".csv" #.csv # in joint folder
 
-	frame_idx = 1
-	output_dir = "./output/change_quats13febnew/"
+	frame_idx = 10
+	output_dir = ""
 	record = 0
 	if record ==1:
 		if not (os.path.exists(output_dir)):
 			os.makedirs(output_dir) # Create a new directory because it does not exist
-		output_name = output_dir+file[:-4]+'_DW2_withground'+str(frame_idx)+'.avi'
+		output_name = output_dir+file[:-4]++str(frame_idx)+'.avi'
 		# annotated_output_name = output_dir+now+'_annotate
 
 		fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -45,7 +45,7 @@ for file in files:
 				continue
 			if line[0]=='t':
 				if (quat != []):
-					quats.append(quat)
+					quats.append(quat)      
 					# print(quats)
 					# time.sleep(2)
 				quat = []

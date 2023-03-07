@@ -33,19 +33,21 @@ input_channels = 200 # doppler data at 1 time step 2x2400 data points
 input_shape = (batch_size, 1, 2400) # doppler data
 learning_rate = 0.01
 output_size = 100           # 25 joints * 4D quaternion :The output is prediction results for quaternion.  
-num_epochs = 24000
+num_epochs = 10000
 
-error
+error  
 
 device = ("cuda" if torch.cuda.is_available() else "cpu") 
-f = open('outputlog_velocitymodel_17feb_walk_24000_trevor_MSE.txt', 'a+')
-PATH = "state_dict_model_outputlog_velocitymodel_17feb_walk_24000_trevor_MSE.pt"
+f = open('huber_test_lstm_0703_all.txt', 'a+')
+PATH = "huber_test_lstm_0703_all.pt"
 
 # train_dataloader = DataLoader(CustomDataset_class(), batch_size= batch_size, shuffle=True)
 # print(str(torch.FloatTensor(train_dataloader).size))
 
 train_dataloader = DataLoader(velocityDataset(), batch_size= batch_size, shuffle=False)
-# [train_dataloader, val_dataloader, test_dataloader] = random_split(velocityDataset(), [1, 0, 0], generator=torch.Generator().manual_seed(42))
+# [train_dataloader, val_dataloader, test_dataloader] = random_split(velocityDataset(), [0.8, 0.2, 0], generator=torch.Generator().manual_seed(42))
+# train_dataloader = DataLoader(train_dataloader, batch_size= batch_size, shuffle=True)
+# val_dataloader = DataLoader(val_dataloader, batch_size= batch_size, shuffle=True)
 
 
 class Network(nn.Module): 
@@ -84,7 +86,7 @@ class Network(nn.Module):
 		# shape of input to lstm model: [batch_size, seq_len, input_size], input_size = number of features
 		self.lstm = nn.Sequential(
 			# nn.LSTM(input_size = 128, hidden_size = 25, num_layers = 2, batch_first = True),
-			nn.LSTM(input_size = 64, hidden_size = 25, num_layers = 2, batch_first = True),
+			nn.LSTM(input_size = 128, hidden_size = 128, num_layers = 2, batch_first = True),
 
 			# nn.LSTM(input_size = 32, hidden_size = 5, num_layers = 2),
 
@@ -95,7 +97,9 @@ class Network(nn.Module):
 			# nn.ReLU(),
 			# nn.Linear(25, 64),
 			# nn.ReLU(),
-			nn.Linear(128, 75)
+			# nn.Linear(128, 75)
+			nn.Linear(128, 93) # tree structure
+
 			)
 		self.double()
 
@@ -109,7 +113,9 @@ class Network(nn.Module):
 
 	   # x = torch.transpose(x,0,2)
 	   # x = torch.transpose(x,1,2)
-	   x = torch.transpose(x,0,2)#.float()
+	   x = torch.squeeze(x)
+	   # print(x.shape)
+	   x = torch.transpose(x,1,2)#.float()
 	   # x = torch.transpose(x,0,1)
 
 	   # print(x.type)
@@ -124,18 +130,23 @@ class Network(nn.Module):
 	   # print(x1.shape)
 
 	   # print(x1.shape)
-	   # x2 = self.lstm(x1) 
-	   # x2, (ht, ct) = self.lstm(x1)
+	   x2 = self.lstm(x1) 
+	   x2, (ht, ct) = self.lstm(x1)
+	   ct = ct[0]
+	   ct = ct[None,:]
+	   ct = torch.transpose(ct,0,1)
+	   # print(ct.shape)
 
-	   x3 = self.linear(x1)
+
+	   x3 = self.linear(ct)
 	   # print(x3.shape)
 
 
 	   return x3
 
 # Instantiate the model 
-# criterion = nn.HuberLoss()
-criterion = nn.MSELoss()
+criterion = nn.HuberLoss()
+# criterion = nn.MSELoss()
 
 model = Network() 
 model.to(device)
@@ -149,7 +160,7 @@ for epoch in range(num_epochs):  # loop over the dataset multiple times
 	
 	for i, data in enumerate(train_dataloader, 0):
 		# print(data.shape)
-		inputs, labels = data
+		(inputs, labels, nil)= data
 		# print(len(inputs))#.shape)
 		# print(len(inputs[0]))
 		# print(labels.shape)
@@ -158,7 +169,18 @@ for epoch in range(num_epochs):  # loop over the dataset multiple times
 		# inputs = torch.Tensor(torch.flatten(inputs)).cuda()
 		# inputs = torch.flatten(torch.FloatTensor(inputs)).cuda()
 		# inputs = torch.FloatTensor(inputs).cuda()
-		inputs = torch.stack(inputs).double().cuda()
+		# print(len(inputs))
+		# print(len(inputs[0]))
+		# print(len(inputs[0][0]))
+
+
+		# ERROR
+		# print(inputs)
+		# error
+		# inputs = np.array(inputs, dtype='float')
+		inputs = torch.FloatTensor(inputs).double().cuda()
+		# inputs = torch.stack(inputs).double().cuda()
+
 		# inputs = torch.FloatTensor(inputs)
 		# inputs = inputs.cuda()
 		inputs = inputs[None, :]
